@@ -2,17 +2,8 @@ name: X Viral Video Automation (USA Target)
 
 on:
   repository_dispatch:
-    types: [x_viral_video_run]
-  workflow_dispatch:
-    inputs:
-      use_elevenlabs:
-        description: 'Use ElevenLabs? (true = ElevenLabs, false = Free Edge-TTS)'
-        required: false
-        default: 'true'
-      upload_to_youtube:
-        description: 'Upload to YouTube? (true = YouTube, false = Google Drive)'
-        required: false
-        default: 'true'
+    types: [x_viral_video_run] # cron-job.org এর জন্য
+  workflow_dispatch:          # সরাসরি ১-ক্লিকে ম্যানুয়াল রানের জন্য
 
 jobs:
   run-automation:
@@ -41,7 +32,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 🌟 Rclone কনফিগারেশন সেটআপ (Google Drive-এর জন্য)
+      # 🌟 Rclone কনফিগারেশন
       - name: Configure Rclone
         shell: python
         env:
@@ -56,6 +47,7 @@ jobs:
                   f.write(conf_data)
               print("✅ Rclone configured successfully!")
 
+      # 🌟 সরাসরি Secrets থেকে ভ্যালু নিয়ে রান করবে
       - name: Run Video Automation Engine
         env:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
@@ -66,12 +58,12 @@ jobs:
           ELEVENLABS_API_KEYS: ${{ secrets.ELEVENLABS_API_KEYS }}
           ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
           MICROLINK_API_KEYS: ${{ secrets.MICROLINK_API_KEYS }}
-          # বাটন / সুইচ কন্ট্রোল
-          USE_ELEVENLABS: ${{ github.event.inputs.use_elevenlabs || secrets.USE_ELEVENLABS || 'true' }}
-          UPLOAD_TO_YOUTUBE: ${{ github.event.inputs.upload_to_youtube || secrets.UPLOAD_TO_YOUTUBE || 'true' }}
+          USE_ELEVENLABS: ${{ secrets.USE_ELEVENLABS || 'true' }}
+          UPLOAD_TO_YOUTUBE: ${{ secrets.UPLOAD_TO_YOUTUBE || 'true' }}
           GDRIVE_PARENT_FOLDER_ID: ${{ secrets.GDRIVE_PARENT_FOLDER_ID }}
         run: python main.py
 
+      # 🌟 হিস্ট্রি ও কী-স্টেট পার্মানেন্ট গিটহাবে সেভ রাখবে
       - name: Commit and Push History & API State
         if: always()
         run: |
