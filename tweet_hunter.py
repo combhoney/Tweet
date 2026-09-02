@@ -1,49 +1,77 @@
 # -*- coding: utf-8 -*-
-import os, re, json, requests
+import os, re, json, requests, feedparser
 from config import WORKSPACE_DIR, HISTORY_FILE, VIP_HANDLES, MAX_VIDEOS_PER_RUN
 from key_manager import get_circular_key_queue, update_exhausted_key_pointer, update_success_key_pointer
 
 HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 }
 
-def get_processed_history():
-    """পূর্বে তৈরি হওয়া Tweet ID ও হিস্ট্রি লোড করে"""
-    if os.path.exists(HISTORY_FILE):
-        try:
-            with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-                return {line.strip() for line in f if line.strip()}
-        except Exception: pass
-    return set()
+def init_workspace():
+    os.makedirs(WORKSPACE_DIR, exist_ok=True)
+    for fname in ["history.txt", "api_key_state.json"]:
+        p = os.path.join(WORKSPACE_DIR, fname)
+        if not os.path.exists(p):
+            with open(p, "w", encoding="utf-8") as f:
+                if fname.endswith(".json"): f.write("{}")
+                else: f.write("")
 
-def fetch_tweets_from_twitter_syndication(handle):
-    """
-    টুইটারের অফিসিয়াল Syndication সার্ভার থেকে সরাসরি লাইভ টুইট ও এনগেজমেন্ট বের করে
-    """
-    url = f"https://syndication.twitter.com/srv/timeline-profile/screen-name/{handle}"
+def get_processed_history():
+    init_workspace()
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=15)
+        with open(HISTORY_FILE, "r", encoding="utf-8") as f:
+            return {line.strip() for line in f if line.strip()}
+    except Exception:
+        return set()
+
+def fetch_tweet_by_id(tweet_id):
+    """FxTwitter API দিয়ে টুইটের টেক্সট, লেখক এবং লাইক সংখ্যা বের করে"""
+    try:
+        url = f"https://api.fxtwitter.com/status/{tweet_id}"
+        resp = requests.get(url, headers=HEADERS, timeout=12)
         if resp.status_code == 200:
-            match = re.search(r'<script id="__NEXT_DATA__"[^>]*>(.*?)</script>', resp.text, re.DOTALL)
-            if match:
-                data = json.loads(match.group(1))
-                entries = data.get("props", {}).get("pageProps", {}).get("timeline", {}).get("entries", [])
-                tweets = []
-                for entry in entries:
-                    t = entry.get("content", {}).get("tweet")
-                    if t:
-                        tweets.append({
-                            "id": str(t.get("id_str")),
-                            "text": t.get("text", ""),
-                            "likes": int(t.get("favorite_count", 0)),
-                            "retweets": int(t.get("retweet_count", 0)),
-                            "url": f"https://x.com/{handle}/status/{t.get('id_str')}"
-                        })
-                return tweets
+            data = resp.json()
+            tweet = data.get("tweet", {})
+            if tweet and tweet.get("text"):
+                return {
+                    "id": str(tweet.get("id", tweet_id)),
+                    "text": tweet.get("text", ""),
+                    "likes": int(tweet.get("likes", 0)),
+                    "retweets": int(tweet.get("retweets", 0)),
+                    "author": tweet.get("author", {}).get("screen_name", "VIP"),
+                    "url": tweet.get("url", f"https://x.com/i/status/{tweet_id}")
+                }
     except Exception as e:
-        print(f"⚠️ Syndication error for @{handle}: {e}")
-    return []
+        print(f"⚠️ FxTwitter fetch error for ID {tweet_id}: {e}")
+    return None
+
+def find_tweets_from_google_and_rss(handle):
+    """গুগল নিউজ ও গ্লোবাল আরএসএস ফিড থেকে ভিআইপিদের সর্বশেষ ভাইরাল টুইটের লিংক খুঁজে বের করে"""
+    tweets_found = []
+    
+    # সোর্স ১: Google Real-Time X Search RSS
+    search_queries = [
+        f"https://news.google.com/rss/search?q=site:x.com/{handle}+OR+site:twitter.com/{handle}&hl=en-US&gl=US&ceid=US:en",
+        f"https://news.google.com/rss/search?q=%22@{handle}%22+tweet+OR+twitter&hl=en-US&gl=US&ceid=US:en",
+        f"https://rsshub.app/twitter/user/{handle}"
+    ]
+
+    for feed_url in search_queries:
+        try:
+            feed = feedparser.parse(feed_url)
+            for entry in feed.entries[:8]:
+                # লিংকের ভেতর থেকে অথবা ডেসক্রিপশন থেকে টুইট আইডি খুঁজে বের করা
+                full_content = f"{entry.get('link', '')} {entry.get('summary', '')} {entry.get('title', '')}"
+                matches = re.findall(r'(?:twitter\.com|x\.com)/(?:[a-zA-Z0-9_]+)/status/(\d+)', full_content)
+                for tid in matches:
+                    if tid not in tweets_found:
+                        tweets_found.append(tid)
+            if tweets_found:
+                break
+        except Exception:
+            continue
+
+    return tweets_found
 
 def capture_tweet_screenshot(tweet_url, output_image_path):
     """Microlink API দিয়ে ক্রিস্প হাই-রেজোলিউশন স্ক্রিনশট নেয়"""
@@ -85,13 +113,8 @@ def capture_tweet_screenshot(tweet_url, output_image_path):
     return False
 
 def hunt_and_prepare_viral_tweets():
-    print(f"\n🔍 [TWEET HUNTER] Scanning live Twitter timelines for {MAX_VIDEOS_PER_RUN} video(s)...")
-    os.makedirs(WORKSPACE_DIR, exist_ok=True)
-    
-    # নিশ্চিত করা যে history ফাইল উপস্থিত আছে
-    if not os.path.exists(HISTORY_FILE):
-        with open(HISTORY_FILE, "w", encoding="utf-8") as f: pass
-
+    init_workspace()
+    print(f"\n🔍 [TWEET HUNTER] Multi-Engine Hunter Active (Target: {MAX_VIDEOS_PER_RUN} video)...")
     history = get_processed_history()
     collected_count = 0
 
@@ -99,48 +122,45 @@ def hunt_and_prepare_viral_tweets():
         if collected_count >= MAX_VIDEOS_PER_RUN:
             break
 
-        print(f"📡 Checking @{handle}'s latest tweets directly from X...")
-        tweets = fetch_tweets_from_twitter_syndication(handle)
+        print(f"📡 Searching viral tweets for @{handle} via Global Engine...")
+        tweet_ids = find_tweets_from_google_and_rss(handle)
 
-        for tweet in tweets[:6]:
+        for tid in tweet_ids:
             if collected_count >= MAX_VIDEOS_PER_RUN:
                 break
 
-            tweet_id = tweet["id"]
-            tweet_text = tweet["text"]
-            likes = tweet["likes"]
-            tweet_url = tweet["url"]
-            folder_name = f"tweet_{handle}_{tweet_id}"
-
-            # ডুপ্লিকেট চেক
-            if tweet_id in history or folder_name in history or os.path.exists(os.path.join(WORKSPACE_DIR, folder_name)):
+            folder_name = f"tweet_{handle}_{tid}"
+            if tid in history or folder_name in history or os.path.exists(os.path.join(WORKSPACE_DIR, folder_name)):
                 continue
 
-            # এনগেজমেন্ট ফিল্টার (কমপক্ষে ১,০০০ লাইক বা ভাইরাল টুইট)
-            if likes >= 1000 or len(tweets) <= 3:
-                print(f"🔥 Found Hot Tweet by @{handle}! (Likes: {likes:,})")
-                folder_path = os.path.join(WORKSPACE_DIR, folder_name)
-                os.makedirs(folder_path, exist_ok=True)
-                img_path = os.path.join(folder_path, "1.png")
+            # টুইট ডিটেইলস নিয়ে আসা
+            tweet_data = fetch_tweet_by_id(tid)
+            if not tweet_data:
+                continue
 
-                print(f"📸 Capturing Screenshot for: {tweet_url}")
-                if capture_tweet_screenshot(tweet_url, img_path):
-                    with open(os.path.join(folder_path, "tweet_info.json"), "w", encoding="utf-8") as jf:
-                        json.dump({
-                            "tweet_id": tweet_id,
-                            "author": handle,
-                            "url": tweet_url,
-                            "text": tweet_text,
-                            "likes": likes
-                        }, jf, indent=2)
+            likes = tweet_data["likes"]
+            tweet_text = tweet_data["text"]
+            tweet_url = tweet_data["url"]
 
-                    with open(os.path.join(folder_path, "title.txt"), "w", encoding="utf-8") as tf:
-                        tf.write(f"@{handle}: {tweet_text[:60]}")
+            print(f"🔥 Found Active Tweet by @{handle}! (Likes: {likes:,})")
+            print(f"   └─ \"{tweet_text[:65]}...\"")
 
-                    print(f"✅ Prepared & Staged #{collected_count + 1}: {folder_name}")
-                    collected_count += 1
-                    break
-                else:
-                    print(f"⚠️ Screenshot failed for {tweet_url}, trying next tweet...")
+            folder_path = os.path.join(WORKSPACE_DIR, folder_name)
+            os.makedirs(folder_path, exist_ok=True)
+            img_path = os.path.join(folder_path, "1.png")
 
-    print(f"🎯 Total {collected_count}/{MAX_VIDEOS_PER_RUN} viral tweet(s) staged for video creation.\n")
+            print(f"📸 Capturing Screenshot via Microlink: {tweet_url}")
+            if capture_tweet_screenshot(tweet_url, img_path):
+                with open(os.path.join(folder_path, "tweet_info.json"), "w", encoding="utf-8") as jf:
+                    json.dump(tweet_data, jf, indent=2)
+
+                with open(os.path.join(folder_path, "title.txt"), "w", encoding="utf-8") as tf:
+                    tf.write(f"@{handle}: {tweet_text[:60]}")
+
+                print(f"✅ Staged for Video Creation: {folder_name}")
+                collected_count += 1
+                break
+            else:
+                print(f"⚠️ Screenshot failed for ID {tid}, trying next...")
+
+    print(f"🎯 Total {collected_count}/{MAX_VIDEOS_PER_RUN} viral tweet(s) prepared for this run.\n")
