@@ -26,9 +26,7 @@ def get_processed_history():
         return set()
 
 def fetch_live_tweets_fxtwitter_v2(handle):
-    """
-    FxTwitter API v2 দিয়ে সরাসরি হ্যান্ডেলের লাইভ টাইমলাইন এবং পোস্টগুলো নিয়ে আসে
-    """
+    """FxTwitter API v2 দিয়ে হ্যান্ডেলের লাইভ টাইমলাইন ডেটা আনে"""
     endpoints = [
         f"https://api.fxtwitter.com/2/profile/{handle}/statuses",
         f"https://api.fxtwitter.com/2/search?q=from:{handle}",
@@ -37,12 +35,9 @@ def fetch_live_tweets_fxtwitter_v2(handle):
 
     for url in endpoints:
         try:
-            print(f"  ⏳ Querying FxTwitter API: {url} ...")
             resp = requests.get(url, headers=HEADERS, timeout=12)
             if resp.status_code == 200:
                 data = resp.json()
-                
-                # ১. লিস্ট আকারে টুইট থাকলে
                 results = data.get("results", []) or data.get("statuses", []) or data.get("tweets", [])
                 if results and isinstance(results, list):
                     tweets = []
@@ -59,10 +54,8 @@ def fetch_live_tweets_fxtwitter_v2(handle):
                                 "url": f"https://x.com/{handle}/status/{tid}"
                             })
                     if tweets:
-                        print(f"  ✅ Found {len(tweets)} tweets for @{handle}")
                         return tweets
 
-                # ২. সিঙ্গেল বা পিনড টুইট থাকলে
                 single = data.get("status") or data.get("tweet") or data.get("pinned_tweet")
                 if single and isinstance(single, dict):
                     tid = str(single.get("id", ""))
@@ -75,27 +68,32 @@ def fetch_live_tweets_fxtwitter_v2(handle):
                             "author": handle,
                             "url": f"https://x.com/{handle}/status/{tid}"
                         }]
-            else:
-                print(f"  ⚠️ HTTP {resp.status_code} returned from {url}")
-        except Exception as e:
-            print(f"  ⚠️ Error from {url}: {e}")
+        except Exception:
             continue
 
     return []
 
-def capture_tweet_screenshot(tweet_url, output_image_path):
-    """Microlink API দিয়ে ক্রিস্প হাই-রেজোলিউশন স্ক্রিনশট নেয়"""
+def capture_tweet_screenshot(tweet_id, output_image_path):
+    """
+    🌟 Twitter-এর অফিশিয়াল Standalone Embed URL দিয়ে স্ক্রিনশট নেয়
+    এতে কোনো প্রকার 'See this post in the app' বা লগইন পপ-আপ আসে না
+    """
     key_queue = get_circular_key_queue("microlink", "MICROLINK_API_KEYS")
     if not key_queue:
         key_queue = [(0, None)]
 
     total_keys = len(key_queue)
     endpoint = "https://api.microlink.io"
+    
+    # অফিশিয়াল টোকেনলেস ডার্ক-মোড এম্বেড উইজেট
+    embed_url = f"https://platform.twitter.com/embed/Tweet.html?id={tweet_id}&theme=dark"
+    
     params = {
-        "url": tweet_url,
+        "url": embed_url,
         "screenshot": "true",
         "scale": "2",
-        "waitForTimeout": "3500"
+        "waitForTimeout": "3000",
+        "hide": "[aria-label='Close'], div[role='dialog']"
     }
 
     for actual_idx, api_key in key_queue:
@@ -124,7 +122,7 @@ def capture_tweet_screenshot(tweet_url, output_image_path):
 
 def hunt_and_prepare_viral_tweets():
     init_workspace()
-    print(f"\n🔍 [TWEET HUNTER] FxTwitter Cloud Engine Active (Target: {MAX_VIDEOS_PER_RUN} video)...")
+    print(f"\n🔍 [TWEET HUNTER] Scanning live timeline (Target: {MAX_VIDEOS_PER_RUN} video)...")
     history = get_processed_history()
     collected_count = 0
 
@@ -132,7 +130,7 @@ def hunt_and_prepare_viral_tweets():
         if collected_count >= MAX_VIDEOS_PER_RUN:
             break
 
-        print(f"\n📡 Scanning live timeline for @{handle}...")
+        print(f"\n📡 Scanning @{handle}...")
         tweets = fetch_live_tweets_fxtwitter_v2(handle)
 
         for tweet in tweets:
@@ -147,28 +145,27 @@ def hunt_and_prepare_viral_tweets():
 
             # ডুপ্লিকেট ফিল্টার
             if tid in history or folder_name in history or os.path.exists(os.path.join(WORKSPACE_DIR, folder_name)):
-                print(f"  ⏩ Skipping already processed tweet ID: {tid}")
                 continue
 
             print(f"🔥 Selecting Tweet by @{handle}! (Likes: {likes:,})")
-            print(f"   📝 Text: \"{tweet_text[:80]}...\"")
+            print(f"   📝 \"{tweet_text[:80]}...\"")
 
             folder_path = os.path.join(WORKSPACE_DIR, folder_name)
             os.makedirs(folder_path, exist_ok=True)
             img_path = os.path.join(folder_path, "1.png")
 
-            print(f"📸 Capturing Screenshot via Microlink: {tweet_url}")
-            if capture_tweet_screenshot(tweet_url, img_path):
+            print(f"📸 Capturing Clean Embed Screenshot for Tweet ID: {tid}")
+            if capture_tweet_screenshot(tid, img_path):
                 with open(os.path.join(folder_path, "tweet_info.json"), "w", encoding="utf-8") as jf:
                     json.dump(tweet, jf, indent=2)
 
                 with open(os.path.join(folder_path, "title.txt"), "w", encoding="utf-8") as tf:
                     tf.write(f"@{handle}: {tweet_text[:60]}")
 
-                print(f"✅ Successfully Staged: {folder_name}")
+                print(f"✅ Successfully Staged Clean Tweet: {folder_name}")
                 collected_count += 1
                 break
             else:
-                print(f"⚠️ Screenshot failed for {tweet_url}, trying next...")
+                print(f"⚠️ Screenshot failed for ID {tid}, trying next...")
 
-    print(f"\n🎯 Total {collected_count}/{MAX_VIDEOS_PER_RUN} viral tweet(s) prepared for video creation.\n")
+    print(f"\n🎯 Total {collected_count}/{MAX_VIDEOS_PER_RUN} clean tweet(s) prepared.\n")
