@@ -63,12 +63,12 @@ jobs:
           GDRIVE_PARENT_FOLDER_ID: ${{ secrets.GDRIVE_PARENT_FOLDER_ID }}
         run: python main.py
 
-      # 🌟 হিস্ট্রি ও কী-স্টেট পার্মানেন্ট গিটহাবে সেভ রাখবে
+# 🌟 হিস্ট্রি ও স্টেট সেভ করা
       - name: Commit and Push History & API State
         if: always()
         run: |
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "action@github.com"
-          git add workspace/history.txt workspace/api_key_state.json || true
+          git add workspace/ || true
           git commit -m "Update processed tweet history and key pointers [skip ci]" || echo "No changes to commit"
           git push || true
