@@ -1,0 +1,82 @@
+name: X Viral Video Automation (USA Target)
+
+on:
+  repository_dispatch:
+    types: [x_viral_video_run]
+  workflow_dispatch:
+    inputs:
+      use_elevenlabs:
+        description: 'Use ElevenLabs? (true = ElevenLabs, false = Free Edge-TTS)'
+        required: false
+        default: 'true'
+      upload_to_youtube:
+        description: 'Upload to YouTube? (true = YouTube, false = Google Drive)'
+        required: false
+        default: 'true'
+
+jobs:
+  run-automation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: Install System Dependencies (FFmpeg, Fonts, Rclone)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y fonts-dejavu-core fonts-liberation ffmpeg rclone
+
+      - name: Install Python Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 🌟 Rclone কনফিগারেশন সেটআপ (Google Drive-এর জন্য)
+      - name: Configure Rclone
+        shell: python
+        env:
+          RCLONE_CONF_DATA: ${{ secrets.RCLONE_CONF }}
+        run: |
+          import os
+          conf_data = os.environ.get('RCLONE_CONF_DATA', '').strip()
+          if conf_data:
+              config_path = os.path.expanduser('~/.config/rclone/rclone.conf')
+              os.makedirs(os.path.dirname(config_path), exist_ok=True)
+              with open(config_path, 'w', encoding='utf-8') as f:
+                  f.write(conf_data)
+              print("✅ Rclone configured successfully!")
+
+      - name: Run Video Automation Engine
+        env:
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
+          GROQ_API: ${{ secrets.GROQ_API }}
+          Ollama_API_Key: ${{ secrets.Ollama_API_Key }}
+          ELEVENLABS_API_KEYS: ${{ secrets.ELEVENLABS_API_KEYS }}
+          ELEVENLABS_VOICE_ID: ${{ secrets.ELEVENLABS_VOICE_ID }}
+          MICROLINK_API_KEYS: ${{ secrets.MICROLINK_API_KEYS }}
+          # বাটন / সুইচ কন্ট্রোল
+          USE_ELEVENLABS: ${{ github.event.inputs.use_elevenlabs || secrets.USE_ELEVENLABS || 'true' }}
+          UPLOAD_TO_YOUTUBE: ${{ github.event.inputs.upload_to_youtube || secrets.UPLOAD_TO_YOUTUBE || 'true' }}
+          GDRIVE_PARENT_FOLDER_ID: ${{ secrets.GDRIVE_PARENT_FOLDER_ID }}
+        run: python main.py
+
+      - name: Commit and Push History & API State
+        if: always()
+        run: |
+          git config --global user.name "GitHub Action Bot"
+          git config --global user.email "action@github.com"
+          git add workspace/history.txt workspace/api_key_state.json || true
+          git commit -m "Update processed tweet history and key pointers [skip ci]" || echo "No changes to commit"
+          git push || true
