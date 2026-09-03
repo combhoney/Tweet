@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-import os, json, re, requests
-from config import WORKSPACE_DIR, HISTORY_FILE, VIP_HANDLES, MAX_VIDEOS_PER_RUN
+import os, json, time, requests
+from datetime import datetime, timezone
+from config import WORKSPACE_DIR, HISTORY_FILE, VIP_HANDLES, RUN_MODE
 from key_manager import get_circular_key_queue, update_exhausted_key_pointer, update_success_key_pointer
+from ai_service import ai_gatekeeper_check
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -22,17 +24,14 @@ def get_processed_history():
     try:
         with open(HISTORY_FILE, "r", encoding="utf-8") as f:
             return {line.strip() for line in f if line.strip()}
-    except Exception:
-        return set()
+    except Exception: return set()
 
 def fetch_live_tweets_fxtwitter_v2(handle):
-    """FxTwitter API v2 দিয়ে হ্যান্ডেলের লাইভ টাইমলাইন ডেটা আনে"""
     endpoints = [
         f"https://api.fxtwitter.com/2/profile/{handle}/statuses",
         f"https://api.fxtwitter.com/2/search?q=from:{handle}",
         f"https://api.fxtwitter.com/2/profile/{handle}"
     ]
-
     for url in endpoints:
         try:
             resp = requests.get(url, headers=HEADERS, timeout=12)
@@ -45,127 +44,164 @@ def fetch_live_tweets_fxtwitter_v2(handle):
                         tid = str(t.get("id") or t.get("id_str") or "")
                         text = t.get("text", "")
                         likes = int(t.get("likes", t.get("favorite_count", 0)))
+                        created_at = t.get("created_timestamp") or t.get("created_at")
                         if tid and text:
                             tweets.append({
                                 "id": tid,
                                 "text": text,
                                 "likes": likes,
                                 "author": handle,
+                                "created_timestamp": created_at,
                                 "url": f"https://x.com/{handle}/status/{tid}"
                             })
-                    if tweets:
-                        return tweets
-
-                single = data.get("status") or data.get("tweet") or data.get("pinned_tweet")
-                if single and isinstance(single, dict):
-                    tid = str(single.get("id", ""))
-                    text = single.get("text", "")
-                    if tid and text:
-                        return [{
-                            "id": tid,
-                            "text": text,
-                            "likes": int(single.get("likes", 0)),
-                            "author": handle,
-                            "url": f"https://x.com/{handle}/status/{tid}"
-                        }]
-        except Exception:
-            continue
-
+                    if tweets: return tweets
+        except Exception: continue
     return []
 
-def capture_tweet_screenshot(tweet_id, output_image_path):
-    """
-    🌟 Twitter-এর অফিশিয়াল Standalone Embed URL দিয়ে স্ক্রিনশট নেয়
-    এতে কোনো প্রকার 'See this post in the app' বা লগইন পপ-আপ আসে না
-    """
-    key_queue = get_circular_key_queue("microlink", "MICROLINK_API_KEYS")
-    if not key_queue:
-        key_queue = [(0, None)]
-
-    total_keys = len(key_queue)
-    endpoint = "https://api.microlink.io"
-    
-    # অফিশিয়াল টোকেনলেস ডার্ক-মোড এম্বেড উইজেট
+def capture_clean_screenshot(tweet_id, output_path):
+    key_queue = get_circular_key_queue("microlink", "MICROLINK_API_KEYS") or [(0, None)]
     embed_url = f"https://platform.twitter.com/embed/Tweet.html?id={tweet_id}&theme=dark"
+    params = {"url": embed_url, "screenshot": "true", "scale": "2", "waitForTimeout": "3000", "hide": "[aria-label='Close'], div[role='dialog']"}
     
-    params = {
-        "url": embed_url,
-        "screenshot": "true",
-        "scale": "2",
-        "waitForTimeout": "3000",
-        "hide": "[aria-label='Close'], div[role='dialog']"
-    }
-
     for actual_idx, api_key in key_queue:
         headers = {"x-api-key": api_key} if api_key else {}
         try:
-            resp = requests.get(endpoint, params=params, headers=headers, timeout=30)
+            resp = requests.get("https://api.microlink.io", params=params, headers=headers, timeout=30)
             if resp.status_code == 200:
-                data = resp.json()
-                screenshot_url = data.get("data", {}).get("screenshot", {}).get("url")
-                if screenshot_url:
-                    img_data = requests.get(screenshot_url, timeout=20).content
-                    with open(output_image_path, "wb") as f:
-                        f.write(img_data)
-                    if api_key:
-                        update_success_key_pointer("microlink", actual_idx)
+                s_url = resp.json().get("data", {}).get("screenshot", {}).get("url")
+                if s_url:
+                    img_data = requests.get(s_url, timeout=20).content
+                    with open(output_path, "wb") as f: f.write(img_data)
                     return True
-            else:
-                if api_key:
-                    update_exhausted_key_pointer("microlink", actual_idx, total_keys)
-        except Exception:
-            if api_key:
-                update_exhausted_key_pointer("microlink", actual_idx, total_keys)
-            continue
-
+        except Exception: continue
     return False
 
-def hunt_and_prepare_viral_tweets():
+# ==================== [ ১. ২ ঘণ্টার ব্রেকিং নিউজ সংগ্রাহক ] ====================
+def hunt_2hour_breaking_tweets():
     init_workspace()
-    print(f"\n🔍 [TWEET HUNTER] Scanning live timeline (Target: {MAX_VIDEOS_PER_RUN} video)...")
     history = get_processed_history()
-    collected_count = 0
+    print("\n🔍 [TWEET HUNTER] Mode: 2-Hour Breaking News + AI Gatekeeper Active...")
+    
+    now_ts = time.time()
+    two_hours_sec = 2.5 * 3600 # ২.৫ ঘণ্টার উইন্ডো যাতে কোনো ব্রেকিং পোস্ট মিস না হয়
+    staged_folders = []
 
     for handle in VIP_HANDLES:
-        if collected_count >= MAX_VIDEOS_PER_RUN:
-            break
-
-        print(f"\n📡 Scanning @{handle}...")
+        print(f"📡 Scanning @{handle} for fresh tweets...")
         tweets = fetch_live_tweets_fxtwitter_v2(handle)
 
         for tweet in tweets:
-            if collected_count >= MAX_VIDEOS_PER_RUN:
-                break
-
             tid = tweet["id"]
             tweet_text = tweet["text"]
             likes = tweet["likes"]
             tweet_url = tweet["url"]
             folder_name = f"tweet_{handle}_{tid}"
 
-            # ডুপ্লিকেট ফিল্টার
+            # ১. হিস্ট্রি চেক (কখনোই ডুপ্লিকেট হবে না)
             if tid in history or folder_name in history or os.path.exists(os.path.join(WORKSPACE_DIR, folder_name)):
                 continue
 
-            print(f"🔥 Selecting Tweet by @{handle}! (Likes: {likes:,})")
-            print(f"   📝 \"{tweet_text[:80]}...\"")
+            # ২. টাইম চেক (যদি টাইমস্ট্যাম্প থাকে তবে ২ ঘণ্টার ভেতরের হতে হবে)
+            created_ts = tweet.get("created_timestamp")
+            if created_ts and isinstance(created_ts, (int, float)):
+                if (now_ts - created_ts) > two_hours_sec:
+                    continue # ২ ঘণ্টার পুরোনো হলে স্কিপ
 
+            # ৩. 🤖 AI Gatekeeper চেক
+            print(f"  🔍 Passing @{handle}'s Tweet (ID: {tid}) to AI Gatekeeper...")
+            is_worthy, reason, angle = ai_gatekeeper_check(handle, tweet_text, likes)
+            
+            if not is_worthy:
+                print(f"  🚫 [GATEKEEPER REJECTED] {reason} (Skipping).")
+                continue
+
+            print(f"  🔥 [GATEKEEPER APPROVED] {reason} | Angle: {angle}")
+            
+            # ৪. ফোল্ডার তৈরি ও স্ক্রিনশট সংগ্রহ
             folder_path = os.path.join(WORKSPACE_DIR, folder_name)
             os.makedirs(folder_path, exist_ok=True)
-            img_path = os.path.join(folder_path, "1.png")
+            img_main = os.path.join(folder_path, "1.png")
 
-            print(f"📸 Capturing Clean Embed Screenshot for Tweet ID: {tid}")
-            if capture_tweet_screenshot(tid, img_path):
+            if capture_clean_screenshot(tid, img_main):
                 with open(os.path.join(folder_path, "tweet_info.json"), "w", encoding="utf-8") as jf:
-                    json.dump(tweet, jf, indent=2)
-
+                    json.dump({
+                        "mode": "breaking",
+                        "tweet_id": tid,
+                        "author": handle,
+                        "url": tweet_url,
+                        "text": tweet_text,
+                        "likes": likes,
+                        "editorial_angle": angle
+                    }, jf, indent=2)
+                
                 with open(os.path.join(folder_path, "title.txt"), "w", encoding="utf-8") as tf:
                     tf.write(f"@{handle}: {tweet_text[:60]}")
 
-                print(f"✅ Successfully Staged Clean Tweet: {folder_name}")
-                collected_count += 1
-                break
-            else:
-                print(f"⚠️ Screenshot failed for ID {tid}, trying next...")
+                staged_folders.append(folder_name)
+                print(f"  ✅ Staged Breaking News Video: {folder_name}")
+                break # প্রতি অ্যাকাউন্ট থেকে এই রানে ১টি সেরা ব্রেকিং পোস্ট
 
-    print(f"\n🎯 Total {collected_count}/{MAX_VIDEOS_PER_RUN} clean tweet(s) prepared.\n")
+    print(f"\n🎯 Staged {len(staged_folders)} breaking video(s) from the last 2 hours.\n")
+    return staged_folders
+
+# ==================== [ ২. ২৪ ঘণ্টার সেরা ১০ মেগা সংগ্রাহক ] ====================
+def hunt_daily_top10_viral_tweets():
+    init_workspace()
+    history = get_processed_history()
+    print("\n🌟 [DAILY TOP 10 HUNTER] Scanning all VIPs for Top 10 Viral Tweets of the day...")
+
+    all_recent_tweets = []
+    now_ts = time.time()
+    day_sec = 26 * 3600 # ২৬ ঘণ্টার বাফার
+
+    for handle in VIP_HANDLES:
+        tweets = fetch_live_tweets_fxtwitter_v2(handle)
+        for t in tweets:
+            tid = t["id"]
+            if tid in history: continue
+            created_ts = t.get("created_timestamp")
+            if created_ts and isinstance(created_ts, (int, float)) and (now_ts - created_ts) > day_sec:
+                continue
+            all_recent_tweets.append(t)
+
+    # এনগেজমেন্ট (লাইক) অনুযায়ী সাজানো
+    all_recent_tweets.sort(key=lambda x: x.get("likes", 0), reverse=True)
+
+    qualified_tweets = []
+    for t in all_recent_tweets:
+        if len(qualified_tweets) >= 10: break
+        is_worthy, _, _ = ai_gatekeeper_check(t["author"], t["text"], t["likes"])
+        if is_worthy:
+            qualified_tweets.append(t)
+
+    if not qualified_tweets:
+        print("❌ No qualified tweets found for Daily Top 10.")
+        return []
+
+    folder_name = f"daily_top10_{int(time.time())}"
+    folder_path = os.path.join(WORKSPACE_DIR, folder_name)
+    os.makedirs(folder_path, exist_ok=True)
+
+    # ১০টি টুইটের স্ক্রিনশট ক্রমানুসারে (1.png, 2.png, ..., 10.png) ডাউনলোড
+    downloaded_imgs = []
+    for idx, t in enumerate(qualified_tweets, start=1):
+        img_file = os.path.join(folder_path, f"{idx}.png")
+        print(f"📸 Downloading #{idx}/10 Screenshot (@{t['author']})...")
+        if capture_clean_screenshot(t["id"], img_file):
+            downloaded_imgs.append(img_file)
+
+    with open(os.path.join(folder_path, "tweet_info.json"), "w", encoding="utf-8") as jf:
+        json.dump({
+            "mode": "daily_top10",
+            "tweets": qualified_tweets,
+            "tweet_ids": [t["id"] for t in qualified_tweets]
+        }, jf, indent=2)
+
+    print(f"🎉 Daily Top 10 Compilation Staged with {len(downloaded_imgs)} tweet slides!\n")
+    return [folder_name]
+
+def hunt_and_prepare_viral_tweets():
+    if RUN_MODE == "daily_top10":
+        return hunt_daily_top10_viral_tweets()
+    else:
+        return hunt_2hour_breaking_tweets()
