@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, json, time, requests
+from PIL import Image
 from config import WORKSPACE_DIR, HISTORY_FILE, VIP_HANDLES, RUN_MODE
 from key_manager import get_circular_key_queue
 from ai_service import ai_gatekeeper_check
@@ -52,6 +53,7 @@ def fetch_live_tweets_fxtwitter_v2(handle):
                         likes = int(t.get("likes", t.get("favorite_count", 0)))
                         created_at = t.get("created_timestamp") or t.get("created_at")
                         quote_id = t.get("quote", {}).get("id") if t.get("quote") else None
+                        has_media = bool(t.get("media", {}).get("photos") or t.get("media", {}).get("videos"))
                         if tid and text:
                             tweets.append({
                                 "id": tid,
@@ -60,53 +62,12 @@ def fetch_live_tweets_fxtwitter_v2(handle):
                                 "author": handle,
                                 "created_timestamp": created_at,
                                 "quote_id": quote_id,
+                                "has_media": has_media,
                                 "url": f"https://x.com/{handle}/status/{tid}"
                             })
                     if tweets: return tweets
         except Exception: continue
     return []
-
-def fetch_related_community_replies(author, tweet_id, keyword_query, max_needed=8):
-    """
-    টুইটার সার্চ ও এফএক্সটুইটার থেকে ওই বিষয়ের ওপর টপ ভেরিফায়েড কমেন্ট, কোট ও মতামত খুঁজে বের করে
-    """
-    related_tweets = []
-    # সার্চ কুয়েরি
-    search_urls = [
-        f"https://api.fxtwitter.com/2/search?q=to:{author}&sort=top",
-        f"https://api.fxtwitter.com/2/search?q={author}&sort=top"
-    ]
-    for surl in search_urls:
-        if len(related_tweets) >= max_needed: break
-        try:
-            resp = requests.get(surl, headers=HEADERS, timeout=8)
-            if resp.status_code == 200:
-                res = resp.json().get("results", [])
-                for r in res:
-                    rid = str(r.get("id", ""))
-                    rtext = r.get("text", "")
-                    rauthor = r.get("author", {}).get("screen_name", "")
-                    if rid and rid != str(tweet_id) and len(rtext) > 20:
-                        if rid not in [x["id"] for x in related_tweets]:
-                            related_tweets.append({
-                                "id": rid,
-                                "author": rauthor,
-                                "text": rtext,
-                                "likes": int(r.get("likes", 0))
-                            })
-        except Exception: pass
-
-    # যদি আরও স্লাইডের প্রয়োজন হয়, অন্যান্য হাবের আলোচিত পোস্ট যুক্ত করা
-    if len(related_tweets) < max_needed:
-        for v_handle in GLOBAL_VIRAL_HUBS[:5]:
-            if len(related_tweets) >= max_needed: break
-            if v_handle.lower() != author.lower():
-                v_tweets = fetch_live_tweets_fxtwitter_v2(v_handle)
-                for vt in v_tweets[:2]:
-                    if vt["id"] != str(tweet_id) and vt["id"] not in [x["id"] for x in related_tweets]:
-                        related_tweets.append(vt)
-
-    return related_tweets[:max_needed]
 
 def capture_clean_screenshot(tweet_id, output_path):
     key_queue = get_circular_key_queue("microlink", "MICROLINK_API_KEYS") or [(0, None)]
@@ -126,11 +87,66 @@ def capture_clean_screenshot(tweet_id, output_path):
         except Exception: continue
     return False
 
-# ==================== [ ১. ২ ঘণ্টার ব্রেকিং নিউজ মোড (৮-১০টি স্লাইড) ] ====================
+def crop_strict_card(pil_img):
+    """সাদা মার্জিন ছাড়া শুধুমাত্র ডার্ক কার্ড কেটে নেয়"""
+    try:
+        rgb = pil_img.convert("RGB")
+        import numpy as np
+        arr = np.array(rgb)
+        is_card = np.any(arr < 235, axis=-1)
+        rows = np.where(np.any(is_card, axis=1))[0]
+        cols = np.where(np.any(is_card, axis=0))[0]
+        if len(rows) > 40 and len(cols) > 40:
+            y1, y2 = max(0, rows[0] - 2), min(arr.shape[0], rows[-1] + 2)
+            x1, x2 = max(0, cols[0] - 2), min(arr.shape[1], cols[-1] + 2)
+            return rgb.crop((x1, y1, x2, y2))
+    except Exception: pass
+    return pil_img.convert("RGB")
+
+def generate_topic_cohesive_slides(main_img_path, folder_path, has_media=False):
+    """
+    🌟 কোনো অপ্রাসঙ্গিক টুইট না এনে শুধুমাত্র মূল টুইট থেকেই ৪টি সুন্দর ও প্রাসঙ্গিক স্লাইড তৈরি করে:
+    ১. ফুল টুইট কার্ড
+    ২. টেক্সট ও বক্তব্যের ক্লোজ-আপ ভিউ
+    ৩. মিডিয়া/ভিজুয়াল ফোকাস
+    ৪. অথর ও এঙ্গেজমেন্ট হাইলাইট
+    """
+    try:
+        raw_img = Image.open(main_img_path)
+        cropped_card = crop_strict_card(raw_img)
+        w, h = cropped_card.size
+
+        # স্লাইড ২: টেক্সট ও কোট অংশের বড় ভিউ
+        slide2 = os.path.join(folder_path, "2.png")
+        if not os.path.exists(slide2):
+            box2 = (0, 0, w, int(h * 0.65))
+            cropped_card.crop(box2).save(slide2)
+
+        # স্লাইড ৩: মিডিয়া বা বক্তব্যের মূল অংশ
+        slide3 = os.path.join(folder_path, "3.png")
+        if not os.path.exists(slide3):
+            if has_media:
+                box3 = (0, int(h * 0.25), w, int(h * 0.88))
+            else:
+                box3 = (0, int(h * 0.15), w, h)
+            cropped_card.crop(box3).save(slide3)
+
+        # স্লাইড ৪: নিচের এঙ্গেজমেন্ট ও কমিউনিটি সামারি ভিউ
+        slide4 = os.path.join(folder_path, "4.png")
+        if not os.path.exists(slide4):
+            box4 = (0, int(h * 0.35), w, h)
+            cropped_card.crop(box4).save(slide4)
+
+        raw_img.close()
+        cropped_card.close()
+    except Exception as e:
+        print(f"⚠️ Cohesive slide generation notice: {e}")
+
+# ==================== [ ১. ২ ঘণ্টার ব্রেকিং নিউজ মোড (Single Topic) ] ====================
 def hunt_2hour_breaking_tweets():
     init_workspace()
     history = get_processed_history()
-    print("\n🔍 [TWEET HUNTER] Mode: 2-Hour Breaking News + 8-10 Community Slides Active...")
+    print("\n🔍 [TWEET HUNTER] Mode: 2-Hour Breaking News (Strict Single Topic Cohesion)...")
     
     now_ts = time.time()
     two_hours_sec = 3 * 3600
@@ -146,6 +162,7 @@ def hunt_2hour_breaking_tweets():
             likes = tweet["likes"]
             tweet_url = tweet["url"]
             quote_id = tweet.get("quote_id")
+            has_media = tweet.get("has_media", False)
             folder_name = f"tweet_{handle}_{tid}"
 
             if tid in history or folder_name in history or os.path.exists(os.path.join(WORKSPACE_DIR, folder_name)):
@@ -166,26 +183,19 @@ def hunt_2hour_breaking_tweets():
             folder_path = os.path.join(WORKSPACE_DIR, folder_name)
             os.makedirs(folder_path, exist_ok=True)
             
-            # 🌟 স্লাইড ১: মূল টুইটের স্ক্রিনশট
+            # স্লাইড ১: মূল টুইটের স্ক্রিনশট
             img_main = os.path.join(folder_path, "1.png")
             if capture_clean_screenshot(tid, img_main):
                 slide_count = 1
 
-                # 🌟 স্লাইড ২: কোট টুইট থাকলে
+                # যদি কোট টুইট থাকে (শুধুমাত্র এই নির্দিষ্ট টুইটের রেফারেন্স)
                 if quote_id:
                     slide_count += 1
+                    print(f"  📸 Capturing Direct Quoted Tweet (ID: {quote_id})...")
                     capture_clean_screenshot(quote_id, os.path.join(folder_path, f"{slide_count}.png"))
 
-                # 🌟 স্লাইড ৩ থেকে ১০: শীর্ষ ভেরিফায়েড রিপ্লাই ও মতামত কালেকশন
-                print(f"  💬 Hunting top 8-10 community replies & reactions for @{handle}...")
-                replies = fetch_related_community_replies(handle, tid, tweet_text, max_needed=8)
-                
-                for rep in replies:
-                    slide_count += 1
-                    rep_img = os.path.join(folder_path, f"{slide_count}.png")
-                    print(f"    📸 Capturing Slide #{slide_count} (@{rep['author']})...")
-                    capture_clean_screenshot(rep["id"], rep_img)
-                    if slide_count >= 10: break
+                # 🌟 কোনো অপ্রাসঙ্গিক অ্যাকাউন্ট না এনে এই টুইটের থেকেই ৪টি প্রাসঙ্গিক স্লাইড তৈরি
+                generate_topic_cohesive_slides(img_main, folder_path, has_media=has_media)
 
                 with open(os.path.join(folder_path, "tweet_info.json"), "w", encoding="utf-8") as jf:
                     json.dump({
@@ -195,7 +205,6 @@ def hunt_2hour_breaking_tweets():
                         "url": tweet_url,
                         "text": tweet_text,
                         "likes": likes,
-                        "replies_data": replies,
                         "editorial_angle": angle
                     }, jf, indent=2)
                 
@@ -203,9 +212,9 @@ def hunt_2hour_breaking_tweets():
                     tf.write(f"@{handle}: {tweet_text[:60]}")
 
                 staged_folders.append(folder_name)
-                print(f"  ✅ Staged {slide_count}-Slide Video for: {folder_name}")
+                print(f"  ✅ Staged Cohesive Video for: {folder_name}")
 
-    print(f"\n🎯 Total {len(staged_folders)} breaking video(s) staged with rich community slides.\n")
+    print(f"\n🎯 Total {len(staged_folders)} single-topic breaking video(s) staged.\n")
     return staged_folders
 
 # ==================== [ ২. ২৪ ঘণ্টার প্ল্যাটফর্ম-ওয়াইড টপ ১০ মেগা মোড ] ====================
@@ -238,8 +247,7 @@ def hunt_daily_top10_viral_tweets():
             if is_worthy:
                 top10_selected.append(t)
 
-    if not top10_selected:
-        return []
+    if not top10_selected: return []
 
     folder_name = f"daily_top10_{int(time.time())}"
     folder_path = os.path.join(WORKSPACE_DIR, folder_name)
