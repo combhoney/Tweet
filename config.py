@@ -5,19 +5,16 @@ WORKSPACE_DIR = "workspace"
 TMP_DIR = "temp_assets"
 HISTORY_FILE = os.path.join(WORKSPACE_DIR, "history.txt")
 
-# প্রতি রানে ঠিক ১টি ভিডিও তৈরি হবে
-MAX_VIDEOS_PER_RUN = 1
+# রান মোড: "breaking" অথবা "daily_top10"
+RUN_MODE = os.environ.get("RUN_MODE", "breaking").strip().lower()
 
 # ==================== [ ফিচার সুইচ / টগল বাটন ] ====================
-# ১. ভয়েস সুইচ: True হলে ElevenLabs AI, False হলে সম্পূর্ণ ফ্রি Microsoft Edge-TTS
-USE_ELEVENLABS = os.environ.get("USE_ELEVENLABS", "true").strip().lower() in ("true", "1", "yes")
+# 🌟 অডিও ইঞ্জিন নির্বাচন: "kokoro" অথবা "edge" (গিটহাব সিক্রেটস থেকে পড়বে)
+TTS_ENGINE = os.environ.get("TTS_ENGINE", "kokoro").strip().lower()
 
-# ২. আপলোড সুইচ: True হলে সরাসরি YouTube Public, False হলে Google Drive (Rclone)
+# আপলোড সুইচ: True হলে YouTube Public, False হলে Google Drive (Rclone)
 UPLOAD_TO_YOUTUBE = os.environ.get("UPLOAD_TO_YOUTUBE", "true").strip().lower() in ("true", "1", "yes")
-
-# ৩. গুগল ড্রাইভ ফোল্ডার আইডি (না দিলে ড্রাইভের রুট ফোল্ডারে সেভ হবে)
 GDRIVE_PARENT_FOLDER_ID = os.environ.get("GDRIVE_PARENT_FOLDER_ID", "").strip()
-
 # ====================================================================
 
 VIP_HANDLES = [
@@ -35,8 +32,8 @@ VIP_HANDLES = [
 ]
 
 DEFAULT_BASE_TAGS = [
-    'Trending News', 'Twitter News', 'Breaking News',
-    'Elon Musk', 'Tech News', 'Viral Tweets', 'X Trending'
+    'Breaking News', 'Twitter News', 'X Trending',
+    'Elon Musk', 'Tech News', 'Viral Controversy', 'US News'
 ]
 
 def get_all_microlink_keys():
