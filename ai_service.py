@@ -3,8 +3,6 @@ import os, json, re, requests
 from config import DEFAULT_BASE_TAGS
 from key_manager import get_circular_key_queue
 
-OLLAMA_API_URL = os.environ.get("OLLAMA_API_URL", "https://api.ollama.com").rstrip("/")
-OLLAMA_MODELS = ["gemma4", "kimi-k3", "minimax-m3"]
 GROQ_MODELS = ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
 
 def parse_json_safely(raw_text):
@@ -17,15 +15,14 @@ def parse_json_safely(raw_text):
 def ai_gatekeeper_check(author, tweet_text, likes):
     clean_t = tweet_text.strip()
     if len(clean_t) < 20 or likes < 300:
-        return False, f"Too short or low engagement ({likes} likes)", ""
+        return False, "Low engagement or short text", ""
 
-    gatekeeper_prompt = f"""Evaluate if this tweet has newsworthy or debate value for a 2-minute YouTube news video:
+    gatekeeper_prompt = f"""Evaluate if this tweet has newsworthy or debate value:
 Author: @{author}
 Tweet: "{clean_t}"
 Likes: {likes}
 
-Reject ONLY if it is pure 1-word spam or generic greeting. Otherwise ACCEPT.
-Return JSON: {{"is_worthy": true/false, "reason": "...", "editorial_angle": "..."}}"""
+Reject ONLY if pure 1-word spam or generic greeting. Output JSON: {{"is_worthy": true/false, "reason": "...", "editorial_angle": "..."}}"""
 
     groq_queue = get_circular_key_queue("groq", "GROQ_API")
     for actual_idx, g_key in groq_queue:
@@ -44,31 +41,35 @@ Return JSON: {{"is_worthy": true/false, "reason": "...", "editorial_angle": "...
                     return data.get("is_worthy", True), data.get("reason", "Approved"), data.get("editorial_angle", "Breaking Story")
         except Exception: pass
 
-    return True, "Passed engagement check", "Breaking Story"
+    return True, "Approved", "Breaking Story"
 
-def generate_tweet_commentary(author, tweet_text):
-    prompt = f"""You are an elite US YouTube investigative news anchor (like Vox or Johnny Harris).
-Write a thrilling, fast-paced, cohesive 2.5-minute spoken commentary script (340-390 words) strictly focused on ONE SINGLE TOPIC.
+def generate_synchronized_script(slides_data):
+    """
+    🌟 কোনো সময়ের বাধ্যবাধকতা ছাড়াই বিষয়বস্তু অনুযায়ী সম্পূর্ণ মুক্ত ও আকর্ষণীয় স্ক্রিপ্ট তৈরি করে
+    """
+    slides_formatted = "\n".join([f"Slide #{s['slide_id']} ({s['type'].upper()} by @{s['author']}): \"{s['text']}\"" for s in slides_data])
+    
+    prompt = f"""You are an elite US YouTube investigative news anchor and commentary host.
+Write an exhilarating, deeply engaging, and natural synchronized broadcast script for a video with {len(slides_data)} visual slides.
 
-Context:
-- Author: @{author}
-- Tweet Statement: "{tweet_text}"
+HERE ARE THE EXACT SLIDES SHOWN IN SEQUENCE:
+{slides_formatted}
 
-STORYTELLING STRUCTURE (Strict Single Topic Cohesion):
-1. THE HOOK: What @{author} just posted and why the internet is exploding over this specific news.
-2. THE BACKSTORY & CONTEXT: Why this statement is significant (market impact, political stakes, or tech breakthrough).
-3. COMMUNITY REACTION: What experts, critics, and supporters are saying about THIS EXACT topic.
-4. WHAT HAPPENS NEXT: The future implications and a strong call to action for viewers to comment below.
-
-Spoken English only: No asterisks, timestamps, or markdown in voiceover script.
+NATURAL STORYTELLING RULES (NO ARTIFICIAL TIME LIMITS):
+1. For Slide #1 (Main Tweet): Open with an explosive hook, thoroughly explain the background story, what @{slides_data[0]['author']} posted, and why timelines are on fire. Take as much space as needed to make the intro punchy, clear, and comprehensive.
+2. For each subsequent Slide (Replies/Comments): Naturally react to, break down, and analyze that specific user's counter-argument, roast, supporting point, or verified opinion. Feel free to elaborate on important debates and keep smaller points concise.
+3. Flow & Cohesion: Connect all segments with smooth broadcast transitions so the entire video feels like one thrilling continuous investigative story.
+4. Spoken English Only: Natural spoken American English. No markdown asterisks, timestamps, or bracketed instructions in the script text.
 
 Return strictly valid JSON:
 {{
   "optimized_title": "Sensational High-CTR Title with emojis under 90 chars",
   "thumbnail_slogan": "ONE ULTRA PUNCHY 3-6 WORD SLOGAN IN ALL-CAPS",
-  "voiceover_script": "Full continuous spoken script strictly about this story...",
-  "video_description": "Engaging description with summary and 4 hashtags",
-  "specific_tags": ["Breaking News", "Twitter Viral", "Trending X"]
+  "video_description": "Engaging 2-paragraph description with summary and 4 hashtags",
+  "segments": [
+    {{"slide_id": 1, "script": "Natural spoken narrative for Slide 1..."}},
+    {{"slide_id": 2, "script": "Natural spoken breakdown of Reply 2..."}}
+  ]
 }}"""
 
     groq_queue = get_circular_key_queue("groq", "GROQ_API")
@@ -81,81 +82,12 @@ Return strictly valid JSON:
                     "messages": [{"role": "system", "content": "You are a professional YouTube news scriptwriter. Output strictly valid JSON."},
                                  {"role": "user", "content": prompt}],
                     "response_format": {"type": "json_object"},
-                    "temperature": 0.6, "max_tokens": 2000
+                    "temperature": 0.6, "max_tokens": 3000
                 }
-                resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=25)
+                resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=35)
                 if resp.status_code == 200:
                     data = parse_json_safely(resp.json()['choices'][0]['message']['content'])
-                    if data and data.get("optimized_title") and data.get("voiceover_script"):
-                        return (
-                            data.get("optimized_title").strip()[:100],
-                            data.get("voiceover_script").strip(),
-                            {"thumbnail_slogan": data.get("thumbnail_slogan", "BREAKING NEWS ALERT! 🚨")},
-                            data.get("video_description", "").strip(),
-                            data.get("specific_tags", []) + DEFAULT_BASE_TAGS
-                        )
+                    if data and data.get("segments") and len(data.get("segments")) > 0:
+                        return data
             except Exception: pass
-
-    # Ollama ফলব্যাক
-    ollama_keys = get_circular_key_queue("ollama", "Ollama_API_Key")
-    for actual_idx, o_key in ollama_keys:
-        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {o_key}"}
-        for o_model in OLLAMA_MODELS:
-            try:
-                payload = {"model": o_model, "messages": [{"role": "user", "content": prompt}], "stream": False}
-                resp = requests.post(f"{OLLAMA_API_URL}/api/chat", headers=headers, json=payload, timeout=35)
-                if resp.status_code == 200:
-                    data = parse_json_safely(resp.json().get("message", {}).get("content", ""))
-                    if data and data.get("optimized_title"):
-                        return (
-                            data.get("optimized_title").strip()[:100],
-                            data.get("voiceover_script").strip(),
-                            {"thumbnail_slogan": data.get("thumbnail_slogan", "BREAKING NEWS ALERT! 🚨")},
-                            data.get("video_description", "").strip(),
-                            data.get("specific_tags", []) + DEFAULT_BASE_TAGS
-                        )
-            except Exception: pass
-
-    return None, None, None, None, None
-
-def generate_daily_top10_script(top10_tweets):
-    summary_text = "\n".join([f"#{i+1}. @{t['author']} ({t['likes']:,} Likes): \"{t['text'][:100]}\"" for i, t in enumerate(top10_tweets)])
-    prompt = f"""You are a US YouTube news anchor hosting 'Top 10 Most Viral Tweets of the Day'.
-Here are the top 10 tweets:
-{summary_text}
-
-Write a thrilling 7-8 minute full compilation script (900-1100 words).
-Provide ONE ultra-catchy ALL-CAPS thumbnail slogan (e.g. TOP 10 CRAZIEST TWEETS TODAY! 🔥).
-
-Return strictly valid JSON:
-{{
-  "optimized_title": "TOP 10 CRAZIEST TWEETS OF THE DAY! (Internet Explodes) 🚨",
-  "thumbnail_slogan": "TOP 10 CRAZIEST TWEETS TODAY! 🔥",
-  "voiceover_script": "Full master continuous script...",
-  "video_description": "Daily Roundup of the 10 most viral tweets on X today.",
-  "specific_tags": ["Top 10 Tweets", "Twitter Viral", "Trending News"]
-}}"""
-
-    groq_queue = get_circular_key_queue("groq", "GROQ_API")
-    for actual_idx, g_key in groq_queue:
-        headers = {"Authorization": f"Bearer {g_key}", "Content-Type": "application/json"}
-        try:
-            payload = {
-                "model": "llama-3.3-70b-versatile",
-                "messages": [{"role": "user", "content": prompt}],
-                "response_format": {"type": "json_object"},
-                "temperature": 0.6, "max_tokens": 3000
-            }
-            resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=50)
-            if resp.status_code == 200:
-                data = parse_json_safely(resp.json()['choices'][0]['message']['content'])
-                if data and data.get("optimized_title"):
-                    return (
-                        data.get("optimized_title").strip()[:100],
-                        data.get("voiceover_script").strip(),
-                        {"thumbnail_slogan": data.get("thumbnail_slogan", "TOP 10 CRAZIEST TWEETS TODAY! 🔥")},
-                        data.get("video_description", "").strip(),
-                        data.get("specific_tags", []) + DEFAULT_BASE_TAGS
-                    )
-        except Exception: pass
-    return None, None, None, None, None
+    return None
