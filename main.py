@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import os, json, shutil, traceback
-from config import WORKSPACE_DIR, TMP_DIR, HISTORY_FILE, UPLOAD_TO_YOUTUBE, RUN_MODE
+from config import WORKSPACE_DIR, TMP_DIR, HISTORY_FILE, UPLOAD_TO_YOUTUBE
 from tweet_hunter import hunt_and_prepare_viral_tweets
-from ai_service import generate_tweet_commentary, generate_daily_top10_script
-from audio_engine import generate_voiceover_audio_pipeline
+from ai_service import generate_synchronized_script
+from audio_engine import synthesize_audio_segment
 from thumbnail import generate_dynamic_thumbnail
-from video_editor import render_video_slideshow
+from video_editor import render_synchronized_video
 from youtube_uploader import get_youtube_service, upload_to_youtube
 from gdrive_uploader import upload_to_google_drive
 
@@ -15,15 +15,13 @@ def save_tweet_ids_to_history(id_list):
         with open(HISTORY_FILE, "a", encoding="utf-8") as f:
             for tid in id_list:
                 f.write(f"{tid}\n")
-        print(f"📝 [HISTORY] Saved {len(id_list)} Tweet ID(s) (Never repeat).")
-    except Exception as e:
-        print(f"⚠️ Failed to update history: {e}")
+    except Exception: pass
 
 def process_and_publish_videos(yt):
     if not os.path.exists(WORKSPACE_DIR): return
     os.makedirs(TMP_DIR, exist_ok=True)
 
-    folders = [f for f in sorted(os.listdir(WORKSPACE_DIR)) if os.path.isdir(os.path.join(WORKSPACE_DIR, f)) and (f.startswith("tweet_") or f.startswith("daily_top10_"))]
+    folders = [f for f in sorted(os.listdir(WORKSPACE_DIR)) if os.path.isdir(os.path.join(WORKSPACE_DIR, f)) and f.startswith("tweet_")]
 
     for folder_name in folders:
         folder_path = os.path.join(WORKSPACE_DIR, folder_name)
@@ -34,80 +32,79 @@ def process_and_publish_videos(yt):
                 continue
 
             with open(info_json, "r", encoding="utf-8") as jf:
-                metadata = json.load(jf)
+                tweet_meta = json.load(jf)
 
-            img_files = []
-            for i in range(1, 15):
-                p = os.path.join(folder_path, f"{i}.png")
-                if os.path.exists(p):
-                    img_files.append(p)
-
-            if not img_files:
-                img_files = [os.path.join(folder_path, f) for f in sorted(os.listdir(folder_path)) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
-
-            if not img_files:
+            slides_data = tweet_meta.get("slides_data", [])
+            if not slides_data:
                 shutil.rmtree(folder_path, ignore_errors=True)
                 continue
 
-            mode = metadata.get("mode", "breaking")
-            print(f"\n========== Processing Video: {folder_name} ({len(img_files)} Slides | Mode: {mode.upper()}) ==========")
+            print(f"\n========== Processing: {folder_name} ({len(slides_data)} Synced Slides) ==========")
 
-            # ১. ১০০% টপিক-নির্দিষ্ট স্ক্রিপ্ট তৈরি
-            if mode == "daily_top10":
-                opt_title, script, thumb_meta, desc, tags = generate_daily_top10_script(metadata.get("tweets", []))
-                tweet_ids_to_save = metadata.get("tweet_ids", [])
-            else:
-                author = metadata.get("author", "VIP")
-                text = metadata.get("text", "")
-                opt_title, script, thumb_meta, desc, tags = generate_tweet_commentary(author, text)
-                tweet_ids_to_save = [metadata.get("tweet_id", folder_name)]
-
-            if not opt_title or not script:
-                print(f"🛑 Script generation failed for {folder_name}")
+            # ১. প্রতিটি স্লাইড ও কমেন্টের সাথে মিলিয়ে সিঙ্কড স্ক্রিপ্ট তৈরি
+            ai_data = generate_synchronized_script(slides_data)
+            if not ai_data or not ai_data.get("segments"):
+                print(f"🛑 Synced script generation failed for {folder_name}")
                 continue
 
-            # ২. চাঙ্কড অডিও সিন্থেসিস (Kokoro বা Edge-TTS)
-            audio_path = os.path.join(TMP_DIR, "voiceover.mp3")
-            if not generate_voiceover_audio_pipeline(script, audio_path):
-                print(f"🛑 Voiceover failed for {folder_name}")
+            opt_title = ai_data.get("optimized_title", "Breaking News")
+            slogan = ai_data.get("thumbnail_slogan", "BREAKING NEWS ALERT! 🚨")
+            desc = ai_data.get("video_description", "")
+            segments = ai_data.get("segments", [])
+
+            # ২. প্রতিটি স্লাইডের জন্য আলাদা আলাদা অডিও জেনারেশন
+            paired_slides = []
+            audio_success = True
+
+            for idx, seg in enumerate(segments, start=1):
+                img_path = os.path.join(folder_path, f"{seg.get('slide_id', idx)}.png")
+                if not os.path.exists(img_path):
+                    img_path = os.path.join(folder_path, "1.png")
+
+                aud_path = os.path.join(TMP_DIR, f"seg_{idx}.wav")
+                script_text = seg.get("script", "")
+                
+                print(f"  🎙️ Synthesizing Audio for Slide #{idx}: \"{script_text[:45]}...\"")
+                if synthesize_audio_segment(script_text, aud_path):
+                    paired_slides.append((img_path, aud_path))
+                else:
+                    audio_success = False
+                    break
+
+            if not audio_success or not paired_slides:
+                print(f"🛑 Audio synthesis failed for {folder_name}")
                 continue
 
-            # ৩. ইউনিক ফাইল নেম ও থাম্বনেইল
+            # ৩. থাম্বনেইল তৈরি
             safe_base_name = "".join(c for c in opt_title if c.isalnum() or c in (' ', '_', '-')).strip()[:45]
-            if not safe_base_name:
-                safe_base_name = f"video_{folder_name}"
+            if not safe_base_name: safe_base_name = f"video_{folder_name}"
 
             out_video = os.path.join(TMP_DIR, f"{safe_base_name}.mp4")
             thumb_path = os.path.join(TMP_DIR, f"{safe_base_name}.jpg")
-
-            main_tweet_img = img_files[0]
-            slogan = thumb_meta.get("thumbnail_slogan", "BREAKING NEWS ALERT! 🚨")
+            
+            main_tweet_img = os.path.join(folder_path, "1.png")
             generate_dynamic_thumbnail(main_tweet_img, thumb_path, slogan)
 
-            # ৪. ১৬:৯ ডাইনামিক স্লাইডিং ভিডিও রেন্ডারিং (Right-to-Left / Left-to-Right)
-            print(f"🎬 Rendering 16:9 Dynamic Sliding Video with {len(img_files)} Slides...")
-            render_video_slideshow(audio_path, img_files, out_video, is_vertical=False)
+            # ৪. ১০০% ফ্রেম-পারফেক্ট সিঙ্ক্রোনাইজড ভিডিও রেন্ডারিং
+            print(f"🎬 Rendering {len(paired_slides)} 100% Synced Slides into Video...")
+            render_synchronized_video(paired_slides, out_video)
 
-            # ৫. আপলোড (ইউটিউব বা গুগল ড্রাইভ)
+            # ৫. আপলোড
             if UPLOAD_TO_YOUTUBE:
-                print("🎯 Uploading to YOUTUBE (Public)...")
-                upload_success = upload_to_youtube(yt, out_video, opt_title, thumb_path, desc, tags)
+                upload_success = upload_to_youtube(yt, out_video, opt_title, thumb_path, desc, ['Breaking News', 'X Viral'])
             else:
-                print("🎯 Uploading to GOOGLE DRIVE (Rclone)...")
                 upload_success = upload_to_google_drive(out_video, thumb_path, opt_title)
 
-            # ৬. সফল হলে হিস্ট্রিতে সেভ ও ফোল্ডার ক্লিনআপ
             if upload_success:
-                save_tweet_ids_to_history(tweet_ids_to_save)
+                save_tweet_ids_to_history([tweet_meta.get("tweet_id")])
                 shutil.rmtree(folder_path, ignore_errors=True)
-                print(f"✅ Video Finished & Uploaded: {folder_name}\n")
+                print(f"✅ Video Uploaded & Cleaned: {folder_name}\n")
 
         except Exception as e:
             print(f"❌ Error in {folder_name}: {e}")
             traceback.print_exc()
 
 if __name__ == "__main__":
-    print(f"\n====== [ X Viral Engine: Mode '{RUN_MODE.upper()}' ] ======\n")
     try:
         yt_service = get_youtube_service() if UPLOAD_TO_YOUTUBE else None
         hunt_and_prepare_viral_tweets()
@@ -116,4 +113,3 @@ if __name__ == "__main__":
         traceback.print_exc()
     finally:
         if os.path.exists(TMP_DIR): shutil.rmtree(TMP_DIR, ignore_errors=True)
-        print("\nAll Tasks Finalized.\n======================================")
