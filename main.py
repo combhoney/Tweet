@@ -36,49 +36,58 @@ def process_and_publish_videos(yt):
             with open(info_json, "r", encoding="utf-8") as jf:
                 metadata = json.load(jf)
 
-            img_files = [os.path.join(folder_path, f) for f in sorted(os.listdir(folder_path)) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+            # সংখ্যা অনুযায়ী সব স্লাইড সিরিয়াল করা (1.png, 2.png, 3.png...)
+            img_files = []
+            for i in range(1, 15):
+                p = os.path.join(folder_path, f"{i}.png")
+                if os.path.exists(p):
+                    img_files.append(p)
+
+            if not img_files:
+                img_files = [os.path.join(folder_path, f) for f in sorted(os.listdir(folder_path)) if f.lower().endswith(('.png', '.jpg', '.jpeg'))]
+
             if not img_files:
                 shutil.rmtree(folder_path, ignore_errors=True)
                 continue
 
             mode = metadata.get("mode", "breaking")
-            print(f"\n========== Processing Video: {folder_name} (Mode: {mode.upper()}) ==========")
+            print(f"\n========== Processing Video: {folder_name} ({len(img_files)} Slides | Mode: {mode.upper()}) ==========")
 
-            # ১. স্ক্রিপ্ট ও মেটাডেটা তৈরি
+            # ১. স্ক্রিপ্ট তৈরি
             if mode == "daily_top10":
                 opt_title, script, thumb_meta, desc, tags = generate_daily_top10_script(metadata.get("tweets", []))
                 tweet_ids_to_save = metadata.get("tweet_ids", [])
             else:
                 author = metadata.get("author", "VIP")
                 text = metadata.get("text", "")
-                opt_title, script, thumb_meta, desc, tags = generate_tweet_commentary(author, text)
+                replies_data = metadata.get("replies_data", [])
+                opt_title, script, thumb_meta, desc, tags = generate_tweet_commentary(author, text, replies_data)
                 tweet_ids_to_save = [metadata.get("tweet_id", folder_name)]
 
             if not opt_title or not script:
                 print(f"🛑 Script generation failed for {folder_name}")
                 continue
 
-            # ২. চাঙ্কড অডিও তৈরি (Kokoro বা Edge-TTS)
+            # ২. চাঙ্কড অডিও সিন্থেসিস (Kokoro বা Edge-TTS)
             audio_path = os.path.join(TMP_DIR, "voiceover.mp3")
             if not generate_voiceover_audio_pipeline(script, audio_path):
                 print(f"🛑 Voiceover failed for {folder_name}")
                 continue
 
-            # 🌟 ইউনিক ফাইল নেম নির্ধারণ (যাতে ড্রাইভে কোনো ফাইল রিরাইট না হয়)
+            # ৩. ইউনিক ফাইল নেম ও থাম্বনেইল
             safe_base_name = "".join(c for c in opt_title if c.isalnum() or c in (' ', '_', '-')).strip()[:45]
             if not safe_base_name:
                 safe_base_name = f"video_{folder_name}"
 
             out_video = os.path.join(TMP_DIR, f"{safe_base_name}.mp4")
-            thumb_path = os.path.join(TMP_DIR, f"{safe_base_name}.jpg") # 🌟 ভিডিওর নামের সাথে মিল রেখে ইউনিক থাম্বনেইল
+            thumb_path = os.path.join(TMP_DIR, f"{safe_base_name}.jpg")
 
-            # ৩. প্রো থাম্বনেইল তৈরি (মূল টুইটের ছবি + টপ স্লোগান)
             main_tweet_img = img_files[0]
             slogan = thumb_meta.get("thumbnail_slogan", "BREAKING NEWS ALERT! 🚨")
             generate_dynamic_thumbnail(main_tweet_img, thumb_path, slogan)
 
-            # ৪. ১৬:৯ ফুল এইচডি মোশন ভিডিও রেন্ডারিং
-            print(f"🎬 Rendering 16:9 Dynamic Video ({len(img_files)} Slides)...")
+            # ৪. ১৬:৯ ডাইনামিক স্লাইডিং ভিডিও রেন্ডারিং (Right-to-Left / Left-to-Right)
+            print(f"🎬 Rendering 16:9 Dynamic Sliding Video with {len(img_files)} Slides...")
             render_video_slideshow(audio_path, img_files, out_video, is_vertical=False)
 
             # ৫. আপলোড (ইউটিউব বা গুগল ড্রাইভ)
@@ -89,7 +98,7 @@ def process_and_publish_videos(yt):
                 print("🎯 Uploading to GOOGLE DRIVE (Rclone)...")
                 upload_success = upload_to_google_drive(out_video, thumb_path, opt_title)
 
-            # ৬. সফল হলে হিস্ট্রিতে সেভ ও ফোল্ডার ডিলিট
+            # ৬. সফল হলে হিস্ট্রিতে সেভ ও ফোল্ডার ক্লিনআপ
             if upload_success:
                 save_tweet_ids_to_history(tweet_ids_to_save)
                 shutil.rmtree(folder_path, ignore_errors=True)
