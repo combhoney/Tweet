@@ -46,17 +46,24 @@ Return JSON: {{"is_worthy": true/false, "reason": "...", "editorial_angle": "...
 
     return True, "Passed engagement check", "Breaking Story"
 
-def generate_tweet_commentary(author, tweet_text, top_replies=None):
-    prompt = f"""You are an elite US YouTube news anchor.
-Write an engaging, dramatic 2.5-minute spoken commentary script (320-380 words) for USA viewers.
+def generate_tweet_commentary(author, tweet_text, replies_data=None):
+    replies_summary = ""
+    if replies_data:
+        replies_summary = "\nTop Verified Reactions & Counter-Takes:\n" + "\n".join([f"- @{r.get('author')}: \"{r.get('text')[:90]}\"" for r in replies_data[:6]])
+
+    prompt = f"""You are an elite US YouTube investigative news anchor (like Vox or Johnny Harris).
+Write a thrilling, fast-paced 2.5-minute spoken commentary script (340-400 words) for USA viewers.
 
 Context:
-- Author: @{author}
-- Tweet Statement: "{tweet_text}"
+- Main Tweet Author: @{author}
+- Main Tweet Statement: "{tweet_text}"
+{replies_summary}
 
-CRITICAL SCRIPT & THUMBNAIL RULES:
-1. SCRIPT: Continuous, exciting, multi-part broadcast script. No asterisks or timestamps.
-2. THUMBNAIL SLOGAN: Exactly ONE ultra-catchy 3 to 6 word ALL-CAPS hook for the thumbnail top banner (e.g. HE FINALLY BROKE HIS SILENCE! 🚨, TOTAL CHAOS ON X! 🔥, IT'S OFFICIALLY OVER! 😱).
+STORY & SLIDE PACING:
+1. HOOK: What was just posted by @{author} and why it's breaking the internet.
+2. CONTEXT: The backstory and why this matters right now.
+3. COMMUNITY WAR & REACTIONS: Walk through the top verified opinions, brutal counter-arguments, and community drama in the replies.
+4. FINAL IMPACT & CTA: What happens next? Ask viewers for their thoughts in the comments.
 
 Return strictly valid JSON:
 {{
