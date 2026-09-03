@@ -36,7 +36,6 @@ def process_and_publish_videos(yt):
             with open(info_json, "r", encoding="utf-8") as jf:
                 metadata = json.load(jf)
 
-            # সংখ্যা অনুযায়ী সব স্লাইড সিরিয়াল করা (1.png, 2.png, 3.png...)
             img_files = []
             for i in range(1, 15):
                 p = os.path.join(folder_path, f"{i}.png")
@@ -53,15 +52,14 @@ def process_and_publish_videos(yt):
             mode = metadata.get("mode", "breaking")
             print(f"\n========== Processing Video: {folder_name} ({len(img_files)} Slides | Mode: {mode.upper()}) ==========")
 
-            # ১. স্ক্রিপ্ট তৈরি
+            # ১. ১০০% টপিক-নির্দিষ্ট স্ক্রিপ্ট তৈরি
             if mode == "daily_top10":
                 opt_title, script, thumb_meta, desc, tags = generate_daily_top10_script(metadata.get("tweets", []))
                 tweet_ids_to_save = metadata.get("tweet_ids", [])
             else:
                 author = metadata.get("author", "VIP")
                 text = metadata.get("text", "")
-                replies_data = metadata.get("replies_data", [])
-                opt_title, script, thumb_meta, desc, tags = generate_tweet_commentary(author, text, replies_data)
+                opt_title, script, thumb_meta, desc, tags = generate_tweet_commentary(author, text)
                 tweet_ids_to_save = [metadata.get("tweet_id", folder_name)]
 
             if not opt_title or not script:
