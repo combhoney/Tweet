@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import os, json, re, requests
 from config import DEFAULT_BASE_TAGS
-from key_manager import get_circular_key_queue, update_exhausted_key_pointer, update_success_key_pointer
+from key_manager import get_circular_key_queue
 
 OLLAMA_API_URL = os.environ.get("OLLAMA_API_URL", "https://api.ollama.com").rstrip("/")
 OLLAMA_MODELS = ["gemma4", "kimi-k3", "minimax-m3"]
@@ -14,33 +14,18 @@ def parse_json_safely(raw_text):
         return json.loads(raw_text)
     except Exception: return None
 
-# ------------------ [ 🤖 ব্যালেন্সড AI GATEKEEPER ] ------------------
 def ai_gatekeeper_check(author, tweet_text, likes):
-    """
-    শুধুমাত্র স্প্যাম ও অপ্রয়োজনীয় চ্যাট বাদ দেয়; যেকোনো ব্রেকিং স্টেটমেন্ট, নিউজ বা মন্তব্য গ্রহণ করে
-    """
     clean_t = tweet_text.strip()
-    # মিনিমাম বেসিক চেক (২৫ অক্ষর এবং ৫০০ লাইক)
-    if len(clean_t) < 25 or likes < 400:
-        return False, f"Too short ({len(clean_t)} chars) or low engagement ({likes} likes)", ""
+    if len(clean_t) < 20 or likes < 300:
+        return False, f"Too short or low engagement ({likes} likes)", ""
 
-    gatekeeper_prompt = f"""You are an editorial assistant for a Breaking News YouTube channel.
-Determine if this tweet is worth discussing in a 2-3 minute news/commentary video.
-
+    gatekeeper_prompt = f"""Evaluate if this tweet has newsworthy or debate value for a 2-minute YouTube news video:
 Author: @{author}
 Tweet: "{clean_t}"
 Likes: {likes}
 
-RULES:
-- ACCEPT (is_worthy: true) if it mentions any tech, AI, politics, crypto, world event, business, hot debate, product launch, opinion, or controversy.
-- REJECT (is_worthy: false) ONLY if it is pure spam, 1-word greeting (e.g. 'gm', 'good morning'), or meaningless personal chat.
-
-Return strictly JSON:
-{{
-  "is_worthy": true,
-  "reason": "Short reason",
-  "editorial_angle": "Hook angle"
-}}"""
+Reject ONLY if it is pure 1-word spam or generic greeting. Otherwise ACCEPT.
+Return JSON: {{"is_worthy": true/false, "reason": "...", "editorial_angle": "..."}}"""
 
     groq_queue = get_circular_key_queue("groq", "GROQ_API")
     for actual_idx, g_key in groq_queue:
@@ -50,44 +35,45 @@ Return strictly JSON:
                 "model": "llama-3.1-8b-instant",
                 "messages": [{"role": "user", "content": gatekeeper_prompt}],
                 "response_format": {"type": "json_object"},
-                "temperature": 0.2, "max_tokens": 180
+                "temperature": 0.2, "max_tokens": 150
             }
             resp = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=payload, timeout=8)
             if resp.status_code == 200:
                 data = parse_json_safely(resp.json()['choices'][0]['message']['content'])
                 if data and "is_worthy" in data:
-                    return data.get("is_worthy", True), data.get("reason", "Approved"), data.get("editorial_angle", "Breaking News")
+                    return data.get("is_worthy", True), data.get("reason", "Approved"), data.get("editorial_angle", "Breaking Story")
         except Exception: pass
 
-    # AI কানেকশন ফেইল করলে ফলব্যাক: ২৫ অক্ষরের বড় হলে পাস করবে
     return True, "Passed engagement check", "Breaking Story"
 
-# ------------------ [ ব্রেকিং নিউজ স্ক্রিপ্ট জেনারেটর ] ------------------
 def generate_tweet_commentary(author, tweet_text, top_replies=None):
-    prompt = f"""You are an elite American YouTube news anchor.
-Write an engaging, dramatic 2.5 minute continuous spoken commentary script (320-380 words) for USA viewers.
+    prompt = f"""You are an elite US YouTube investigative news anchor (like Vox or Johnny Harris).
+Write a thrilling, fast-paced, multi-part 2.5-minute spoken commentary script (320-380 words) for USA viewers.
+
 Context:
 - Author: @{author}
-- Tweet Content: "{tweet_text}"
+- Tweet Statement: "{tweet_text}"
 
-CRITICAL RULES:
-1. Fast-paced, engaging American English commentary. No fluff.
-2. Structure: Explosive Hook -> Core Statement & Background -> Internet Reaction -> Call to Action.
-3. Spoken English: No asterisks, markdown symbols, or hashtags in voiceover script.
+CRITICAL 4-STAGE STORY STRUCTURE (Matches visual slide transitions):
+1. STAGE 1 (The Explosive Hook): What was just posted by @{author} and why it's dominating timelines.
+2. STAGE 2 (The Hidden Context): The backstory, market reaction, or political stakes behind this.
+3. STAGE 3 (The Community War & Replies): What critics, top figures, and counter-tweets are saying in the replies.
+4. STAGE 4 (The Bigger Picture & Wrap): What happens next, and a strong call to action for viewers to comment below.
+
+Spoken English only: No asterisks, markdown, or timestamps in voiceover script.
 
 Return strictly valid JSON:
 {{
-  "optimized_title": "High CTR Sensational Title under 90 chars with emojis",
-  "voiceover_script": "Full spoken script...",
+  "optimized_title": "Sensational High-CTR Title with emojis under 90 chars",
+  "voiceover_script": "Full continuous spoken script covering all 4 stages smoothly...",
   "video_description": "Engaging description with summary and 4 hashtags",
-  "specific_tags": ["Breaking News", "Tech News", "Twitter Viral"],
+  "specific_tags": ["Breaking News", "Twitter Viral", "Trending X"],
   "top_text": "BREAKING NEWS",
   "row1_text": "EXPLOSIVE STATEMENT",
-  "row2_text": "Internet Shocked",
+  "row2_text": "Internet War",
   "bot_text": "FULL BREAKDOWN"
 }}"""
 
-    # ১. Groq দিয়ে স্ক্রিপ্ট তৈরি
     groq_queue = get_circular_key_queue("groq", "GROQ_API")
     for actual_idx, g_key in groq_queue:
         headers = {"Authorization": f"Bearer {g_key}", "Content-Type": "application/json"}
@@ -95,7 +81,7 @@ Return strictly valid JSON:
             try:
                 payload = {
                     "model": g_model,
-                    "messages": [{"role": "system", "content": "You are a professional YouTube scriptwriter. Output valid JSON only."},
+                    "messages": [{"role": "system", "content": "You are a professional YouTube news scriptwriter. Output strictly valid JSON."},
                                  {"role": "user", "content": prompt}],
                     "response_format": {"type": "json_object"},
                     "temperature": 0.6, "max_tokens": 2000
@@ -118,7 +104,7 @@ Return strictly valid JSON:
                         )
             except Exception: pass
 
-    # ২. Ollama ফলব্যাক
+    # Ollama ফলব্যাক
     ollama_keys = get_circular_key_queue("ollama", "Ollama_API_Key")
     for actual_idx, o_key in ollama_keys:
         headers = {"Content-Type": "application/json", "Authorization": f"Bearer {o_key}"}
