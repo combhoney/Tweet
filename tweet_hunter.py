@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, json, time, requests
+import os, json, time, requests, feedparser
 from config import WORKSPACE_DIR, HISTORY_FILE, VIP_HANDLES, RUN_MODE
 from key_manager import get_circular_key_queue
 from ai_service import ai_gatekeeper_check
@@ -8,6 +8,18 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json"
 }
+
+# 🌟 ২৪ ঘণ্টার মোডে পুরো টুইটারের ভাইরাল ট্রেন্ড খোঁজার জন্য গ্লোবাল মেগা-হাবস
+GLOBAL_VIRAL_HUBS = [
+    # Mega Influencers & VIPs
+    "elonmusk", "realDonaldTrump", "MrBeast", "sama", "BarackObama",
+    # Breaking News & Citizen Journalism
+    "MarioNawfal", "CollinRugg", "unusual_whales", "WatcherGuru",
+    # Pop Culture, Gaming & Entertainment
+    "PopBase", "Dexerto", "DailyLoud", "DiscussingFilm", "Pubity",
+    # Science, Tech & Memes
+    "NASA", "OpenAI", "historyinmemes", "saylor", "cz_binance"
+]
 
 def init_workspace():
     os.makedirs(WORKSPACE_DIR, exist_ok=True)
@@ -75,13 +87,14 @@ def capture_clean_screenshot(tweet_id, output_path):
         except Exception: continue
     return False
 
+# ==================== [ ১. ২ ঘণ্টার ব্রেকিং নিউজ মোড ] ====================
 def hunt_2hour_breaking_tweets():
     init_workspace()
     history = get_processed_history()
     print("\n🔍 [TWEET HUNTER] Mode: 2-Hour Breaking News + AI Gatekeeper Active...")
     
     now_ts = time.time()
-    two_hours_sec = 3 * 3600 # ৩ ঘণ্টার বাফার উইন্ডো
+    two_hours_sec = 3 * 3600
     staged_folders = []
 
     for handle in VIP_HANDLES:
@@ -95,26 +108,21 @@ def hunt_2hour_breaking_tweets():
             tweet_url = tweet["url"]
             folder_name = f"tweet_{handle}_{tid}"
 
-            # ১. হিস্ট্রি চেক
             if tid in history or folder_name in history or os.path.exists(os.path.join(WORKSPACE_DIR, folder_name)):
                 continue
 
-            # ২. টাইম চেক (যদি টাইমস্ট্যাম্প থাকে)
             created_ts = tweet.get("created_timestamp")
             if created_ts and isinstance(created_ts, (int, float)):
                 if (now_ts - created_ts) > two_hours_sec:
                     continue
 
-            # ৩. 🤖 ব্যালেন্সড AI Gatekeeper চেক
             is_worthy, reason, angle = ai_gatekeeper_check(handle, tweet_text, likes)
-            
             if not is_worthy:
                 print(f"  🚫 [GATEKEEPER REJECTED] {reason}")
                 continue
 
             print(f"  🔥 [APPROVED] @{handle} (Likes: {likes:,}) ➔ \"{tweet_text[:60]}...\"")
             
-            # ৪. ফোল্ডার তৈরি ও স্ক্রিনশট সংগ্রহ
             folder_path = os.path.join(WORKSPACE_DIR, folder_name)
             os.makedirs(folder_path, exist_ok=True)
             img_main = os.path.join(folder_path, "1.png")
@@ -140,16 +148,19 @@ def hunt_2hour_breaking_tweets():
     print(f"\n🎯 Total {len(staged_folders)} breaking video(s) staged from recent hours.\n")
     return staged_folders
 
+# ==================== [ ২. ২৪ ঘণ্টার প্ল্যাটফর্ম-ওয়াইড টপ ১০ মেগা মোড ] ====================
 def hunt_daily_top10_viral_tweets():
     init_workspace()
     history = get_processed_history()
-    print("\n🌟 [DAILY TOP 10 HUNTER] Scanning all VIPs for Top 10 Viral Tweets...")
+    print("\n🌍 [GLOBAL VIRAL HUNTER] Scanning Entire X (Twitter) Platform for Top 10 Most Viral Tweets (Last 24 Hours)...")
 
-    all_recent_tweets = []
+    candidate_tweets = []
     now_ts = time.time()
     day_sec = 26 * 3600
 
-    for handle in VIP_HANDLES:
+    # ১. পুরো টুইটারের মেগা-হাবস এবং বিভিন্ন ক্যাটাগরির ভাইরাল সোর্স স্ক্যান
+    for handle in GLOBAL_VIRAL_HUBS:
+        print(f"  📡 Scanning Global Hub: @{handle} ...")
         tweets = fetch_live_tweets_fxtwitter_v2(handle)
         for t in tweets:
             tid = t["id"]
@@ -157,35 +168,50 @@ def hunt_daily_top10_viral_tweets():
             created_ts = t.get("created_timestamp")
             if created_ts and isinstance(created_ts, (int, float)) and (now_ts - created_ts) > day_sec:
                 continue
-            all_recent_tweets.append(t)
+            candidate_tweets.append(t)
 
-    all_recent_tweets.sort(key=lambda x: x.get("likes", 0), reverse=True)
+    # ২. লাইক ও রিটুইট সংখ্যা অনুযায়ী পুরো টুইটারের সব পোস্ট বড় থেকে ছোট সাজানো
+    candidate_tweets.sort(key=lambda x: x.get("likes", 0), reverse=True)
+    print(f"📊 Collected {len(candidate_tweets)} global candidates. Ranking by engagement...")
 
-    qualified_tweets = []
-    for t in all_recent_tweets:
-        if len(qualified_tweets) >= 10: break
-        is_worthy, _, _ = ai_gatekeeper_check(t["author"], t["text"], t["likes"])
-        if is_worthy:
-            qualified_tweets.append(t)
+    # ৩. টপ ১০টি বাছাই করা
+    top10_selected = []
+    for t in candidate_tweets:
+        if len(top10_selected) >= 10: break
+        # যদি লাইক অন্তত ২,০০০+ হয় তবে গেটকিপারে পাঠানো
+        if t["likes"] >= 2000 or len(top10_selected) < 5:
+            is_worthy, _, _ = ai_gatekeeper_check(t["author"], t["text"], t["likes"])
+            if is_worthy:
+                top10_selected.append(t)
+                print(f"  🏆 Top #{len(top10_selected)}: @{t['author']} ({t['likes']:,} Likes) ➔ \"{t['text'][:65]}...\"")
 
-    if not qualified_tweets:
+    if not top10_selected:
+        print("❌ No qualifying tweets found for Daily Top 10.")
         return []
 
     folder_name = f"daily_top10_{int(time.time())}"
     folder_path = os.path.join(WORKSPACE_DIR, folder_name)
     os.makedirs(folder_path, exist_ok=True)
 
-    for idx, t in enumerate(qualified_tweets, start=1):
+    # ১০টি পোস্টের হাই-রেজোলিউশন স্ক্রিনশট ক্রমানুসারে (1.png, 2.png, ..., 10.png) ডাউনলোড
+    downloaded_imgs = []
+    for idx, t in enumerate(top10_selected, start=1):
         img_file = os.path.join(folder_path, f"{idx}.png")
-        capture_clean_screenshot(t["id"], img_file)
+        print(f"📸 Downloading #{idx}/10 Clean Screenshot (@{t['author']})...")
+        if capture_clean_screenshot(t["id"], img_file):
+            downloaded_imgs.append(img_file)
 
     with open(os.path.join(folder_path, "tweet_info.json"), "w", encoding="utf-8") as jf:
         json.dump({
             "mode": "daily_top10",
-            "tweets": qualified_tweets,
-            "tweet_ids": [t["id"] for t in qualified_tweets]
+            "tweets": top10_selected,
+            "tweet_ids": [t["id"] for t in top10_selected]
         }, jf, indent=2)
 
+    with open(os.path.join(folder_path, "title.txt"), "w", encoding="utf-8") as tf:
+        tf.write(f"TOP 10 MOST VIRAL TWEETS OF THE DAY (Last 24 Hours)")
+
+    print(f"🎉 Platform-Wide Top 10 Mega Compilation Staged with {len(downloaded_imgs)} Slides!\n")
     return [folder_name]
 
 def hunt_and_prepare_viral_tweets():
