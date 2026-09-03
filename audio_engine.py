@@ -1,12 +1,25 @@
 # -*- coding: utf-8 -*-
-import os, re, time, asyncio, requests
+import os, re, asyncio
+import soundfile as sf
+import numpy as np
 from moviepy.editor import AudioFileClip, concatenate_audioclips
 import edge_tts
-from config import USE_ELEVENLABS, TMP_DIR
-from key_manager import get_circular_key_queue, update_exhausted_key_pointer, update_success_key_pointer
+from config import TTS_ENGINE, TMP_DIR
 
-DEFAULT_USA_VOICE_ID = os.environ.get("ELEVENLABS_VOICE_ID", "pNInz6obpgDQGcFmaJgB") # Adam
-MICROSOFT_EDGE_VOICE = "en-US-ChristopherNeural" # আমেরিকান ডিপ নিউজ কাস্টার ভয়েস
+# ভয়েস কনফিগারেশন
+KOKORO_VOICE = "am_adam"                   # Kokoro-র আমেরিকান ডিপ ধারাভাষ্য ভয়েস (Adam)
+EDGE_VOICE = "en-US-ChristopherNeural"     # Edge-TTS এর আমেরিকান নিউজ অ্যাঙ্কর ভয়েস
+
+_kokoro_pipeline = None
+
+def get_kokoro_pipeline():
+    """Kokoro Pipeline লোড ও ক্যাশ করে রাখে যাতে দ্রুত জেনারেট হয়"""
+    global _kokoro_pipeline
+    if _kokoro_pipeline is None:
+        from kokoro import KPipeline
+        print("🧠 [Kokoro TTS] Loading American English AI Pipeline ('a')...")
+        _kokoro_pipeline = KPipeline(lang_code='a')
+    return _kokoro_pipeline
 
 def clean_script_for_speech(text):
     if not text: return ""
@@ -17,7 +30,6 @@ def clean_script_for_speech(text):
     return re.sub(r'\s+', ' ', text).strip()
 
 def split_into_speech_chunks(script, max_chars=250):
-    """স্ক্রিপ্টটিকে অর্থপূর্ণ ছোট ছোট বাক্যের অংশে বিভক্ত করে যাতে ভয়েস ন্যাচারাল থাকে"""
     sentences = re.split(r'(?<=[.!?])\s+', script)
     chunks = []
     current_chunk = ""
@@ -34,40 +46,26 @@ def split_into_speech_chunks(script, max_chars=250):
     if current_chunk: chunks.append(current_chunk)
     return chunks
 
-# ------------------ [ ইঞ্জিন ১: ElevenLabs Chunked Generator ] ------------------
-def synthesize_chunk_elevenlabs(chunk_text, out_path, key_queue):
-    total_keys = len(key_queue)
-    voice_id = DEFAULT_USA_VOICE_ID
-    tts_url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
-
-    for actual_idx, api_key in key_queue:
-        payload = {
-            "text": chunk_text,
-            "model_id": "eleven_turbo_v2_5",
-            "voice_settings": {"stability": 0.45, "similarity_boost": 0.80}
-        }
-        headers = {
-            "Accept": "audio/mpeg",
-            "Content-Type": "application/json",
-            "xi-api-key": api_key
-        }
-        try:
-            resp = requests.post(tts_url, json=payload, headers=headers, timeout=60)
-            if resp.status_code == 200:
-                with open(out_path, "wb") as f:
-                    f.write(resp.content)
-                update_success_key_pointer("elevenlabs", actual_idx)
-                return True
-            else:
-                update_exhausted_key_pointer("elevenlabs", actual_idx, total_keys)
-        except Exception:
-            update_exhausted_key_pointer("elevenlabs", actual_idx, total_keys)
-            continue
+# ------------------ [ ইঞ্জিন ১: Kokoro TTS ] ------------------
+def synthesize_chunk_kokoro(chunk_text, out_path):
+    try:
+        pipeline = get_kokoro_pipeline()
+        generator = pipeline(chunk_text, voice=KOKORO_VOICE, speed=1.0, split_pattern=r'\n+')
+        audio_segments = []
+        for _, _, audio in generator:
+            audio_segments.append(audio)
+            
+        if audio_segments:
+            combined = np.concatenate(audio_segments)
+            sf.write(out_path, combined, 24000)
+            return True
+    except Exception as e:
+        print(f"⚠️ Kokoro synthesis failed on chunk: {e}")
     return False
 
-# ------------------ [ ইঞ্জিন ২: Microsoft Edge-TTS (১০০% ফ্রি) ] ------------------
+# ------------------ [ ইঞ্জিন ২: Microsoft Edge-TTS ] ------------------
 async def _synthesize_edge_async(text, out_path):
-    communicate = edge_tts.Communicate(text, MICROSOFT_EDGE_VOICE)
+    communicate = edge_tts.Communicate(text, EDGE_VOICE)
     await communicate.save(out_path)
 
 def synthesize_chunk_edge_tts(chunk_text, out_path):
@@ -78,27 +76,30 @@ def synthesize_chunk_edge_tts(chunk_text, out_path):
         print(f"⚠️ Edge-TTS error on chunk: {e}")
         return False
 
-# ------------------ [ প্রধান কম্বাইন্ড অডিও পাইপলাইন ] ------------------
+# ------------------ [ প্রধান অডিও পাইপলাইন ] ------------------
 def generate_voiceover_audio_pipeline(text, final_output_audio_path):
     print("\n" + "="*65)
-    engine_name = "ElevenLabs AI (API Key Pool)" if USE_ELEVENLABS else "Microsoft Edge-TTS (Free Neural)"
-    print(f"🎙️ [AUDIO ENGINE] Voice Synthesis Mode: {engine_name}")
+    selected_engine = "Kokoro Open-Source TTS" if "kokoro" in TTS_ENGINE else "Microsoft Edge-TTS"
+    print(f"🎙️ [AUDIO ENGINE] Active TTS: {selected_engine.upper()}")
     print("="*65)
 
     clean_text = clean_script_for_speech(text)
     chunks = split_into_speech_chunks(clean_text)
     print(f"✂️ [Script Segmentation] Divided script into {len(chunks)} continuous chunks.")
 
-    key_queue = get_circular_key_queue("elevenlabs", "ELEVENLABS_API_KEYS") if USE_ELEVENLABS else []
     temp_chunk_files = []
     success = True
 
     for i, chunk in enumerate(chunks, start=1):
-        chunk_file = os.path.join(TMP_DIR, f"chunk_{i}.mp3")
+        chunk_file = os.path.join(TMP_DIR, f"chunk_{i}.wav" if "kokoro" in TTS_ENGINE else f"chunk_{i}.mp3")
         print(f"  • Generating Chunk #{i}/{len(chunks)}: \"{chunk[:40]}...\"")
 
-        if USE_ELEVENLABS:
-            ok = synthesize_chunk_elevenlabs(chunk, chunk_file, key_queue)
+        if "kokoro" in TTS_ENGINE:
+            ok = synthesize_chunk_kokoro(chunk, chunk_file)
+            if not ok:
+                print("  🔄 Kokoro fallback ➔ Trying Edge-TTS for this chunk...")
+                chunk_file = os.path.join(TMP_DIR, f"chunk_{i}.mp3")
+                ok = synthesize_chunk_edge_tts(chunk, chunk_file)
         else:
             ok = synthesize_chunk_edge_tts(chunk, chunk_file)
 
@@ -113,8 +114,8 @@ def generate_voiceover_audio_pipeline(text, final_output_audio_path):
         print("❌ [AUDIO FAILED] Aborting audio pipeline.")
         return False
 
-    # 🌟 অডিও ক্লিপগুলো একসাথে জোড়া লাগানো
-    print(f"🔗 [Audio Stitching] Merging {len(temp_chunk_files)} audio chunks into final master track...")
+    # অডিও ক্লিপগুলো একসাথে জোড়া লাগানো
+    print(f"🔗 [Audio Stitching] Merging {len(temp_chunk_files)} audio chunks into master track...")
     try:
         clips = [AudioFileClip(f) for f in temp_chunk_files]
         final_audio = concatenate_audioclips(clips)
@@ -123,7 +124,7 @@ def generate_voiceover_audio_pipeline(text, final_output_audio_path):
         for c in clips: c.close()
         final_audio.close()
 
-        # টেম্পোরারি খণ্ড অডিওগুলো রিমুভ করা
+        # অস্থায়ী ফাইল ক্লিনআপ
         for f in temp_chunk_files:
             try: os.remove(f)
             except Exception: pass
