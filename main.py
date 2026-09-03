@@ -44,7 +44,7 @@ def process_and_publish_videos(yt):
             mode = metadata.get("mode", "breaking")
             print(f"\n========== Processing Video: {folder_name} (Mode: {mode.upper()}) ==========")
 
-            # ১. স্ক্রিপ্ট তৈরি
+            # ১. স্ক্রিপ্ট ও মেটাডেটা তৈরি
             if mode == "daily_top10":
                 opt_title, script, thumb_meta, desc, tags = generate_daily_top10_script(metadata.get("tweets", []))
                 tweet_ids_to_save = metadata.get("tweet_ids", [])
@@ -58,19 +58,26 @@ def process_and_publish_videos(yt):
                 print(f"🛑 Script generation failed for {folder_name}")
                 continue
 
-            # ২. চাঙ্কড অডিও তৈরি ও নিখুঁত জোড়া লাগানো
+            # ২. চাঙ্কড অডিও তৈরি (Kokoro বা Edge-TTS)
             audio_path = os.path.join(TMP_DIR, "voiceover.mp3")
             if not generate_voiceover_audio_pipeline(script, audio_path):
                 print(f"🛑 Voiceover failed for {folder_name}")
                 continue
 
-            # ৩. ডায়নামিক থাম্বনেইল তৈরি
-            thumb_path = os.path.join(TMP_DIR, "thumbnail.jpg")
-            generate_dynamic_thumbnail(thumb_path, thumb_meta=thumb_meta)
+            # 🌟 ইউনিক ফাইল নেম নির্ধারণ (যাতে ড্রাইভে কোনো ফাইল রিরাইট না হয়)
+            safe_base_name = "".join(c for c in opt_title if c.isalnum() or c in (' ', '_', '-')).strip()[:45]
+            if not safe_base_name:
+                safe_base_name = f"video_{folder_name}"
 
-            # ৪. ১৬:৯ ল্যান্ডস্কেপ মোশন ভিডিও রেন্ডারিং (সবগুলো স্লাইড সহ)
-            safe_title = "".join(c for c in opt_title if c.isalnum() or c in (' ', '_', '-')).strip()[:40]
-            out_video = os.path.join(TMP_DIR, f"{safe_title}.mp4")
+            out_video = os.path.join(TMP_DIR, f"{safe_base_name}.mp4")
+            thumb_path = os.path.join(TMP_DIR, f"{safe_base_name}.jpg") # 🌟 ভিডিওর নামের সাথে মিল রেখে ইউনিক থাম্বনেইল
+
+            # ৩. প্রো থাম্বনেইল তৈরি (মূল টুইটের ছবি + টপ স্লোগান)
+            main_tweet_img = img_files[0]
+            slogan = thumb_meta.get("thumbnail_slogan", "BREAKING NEWS ALERT! 🚨")
+            generate_dynamic_thumbnail(main_tweet_img, thumb_path, slogan)
+
+            # ৪. ১৬:৯ ফুল এইচডি মোশন ভিডিও রেন্ডারিং
             print(f"🎬 Rendering 16:9 Dynamic Video ({len(img_files)} Slides)...")
             render_video_slideshow(audio_path, img_files, out_video, is_vertical=False)
 
