@@ -46,30 +46,27 @@ Return JSON: {{"is_worthy": true/false, "reason": "...", "editorial_angle": "...
 
     return True, "Passed engagement check", "Breaking Story"
 
-def generate_tweet_commentary(author, tweet_text, replies_data=None):
-    replies_summary = ""
-    if replies_data:
-        replies_summary = "\nTop Verified Reactions & Counter-Takes:\n" + "\n".join([f"- @{r.get('author')}: \"{r.get('text')[:90]}\"" for r in replies_data[:6]])
-
+def generate_tweet_commentary(author, tweet_text):
     prompt = f"""You are an elite US YouTube investigative news anchor (like Vox or Johnny Harris).
-Write a thrilling, fast-paced 2.5-minute spoken commentary script (340-400 words) for USA viewers.
+Write a thrilling, fast-paced, cohesive 2.5-minute spoken commentary script (340-390 words) strictly focused on ONE SINGLE TOPIC.
 
 Context:
-- Main Tweet Author: @{author}
-- Main Tweet Statement: "{tweet_text}"
-{replies_summary}
+- Author: @{author}
+- Tweet Statement: "{tweet_text}"
 
-STORY & SLIDE PACING:
-1. HOOK: What was just posted by @{author} and why it's breaking the internet.
-2. CONTEXT: The backstory and why this matters right now.
-3. COMMUNITY WAR & REACTIONS: Walk through the top verified opinions, brutal counter-arguments, and community drama in the replies.
-4. FINAL IMPACT & CTA: What happens next? Ask viewers for their thoughts in the comments.
+STORYTELLING STRUCTURE (Strict Single Topic Cohesion):
+1. THE HOOK: What @{author} just posted and why the internet is exploding over this specific news.
+2. THE BACKSTORY & CONTEXT: Why this statement is significant (market impact, political stakes, or tech breakthrough).
+3. COMMUNITY REACTION: What experts, critics, and supporters are saying about THIS EXACT topic.
+4. WHAT HAPPENS NEXT: The future implications and a strong call to action for viewers to comment below.
+
+Spoken English only: No asterisks, timestamps, or markdown in voiceover script.
 
 Return strictly valid JSON:
 {{
   "optimized_title": "Sensational High-CTR Title with emojis under 90 chars",
   "thumbnail_slogan": "ONE ULTRA PUNCHY 3-6 WORD SLOGAN IN ALL-CAPS",
-  "voiceover_script": "Full continuous spoken script...",
+  "voiceover_script": "Full continuous spoken script strictly about this story...",
   "video_description": "Engaging description with summary and 4 hashtags",
   "specific_tags": ["Breaking News", "Twitter Viral", "Trending X"]
 }}"""
