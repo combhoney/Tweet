@@ -1,0 +1,46 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2095513199135088756",
+  "author": "elonmusk",
+  "url": "https://x.com/elonmusk/status/2095513199135088756",
+  "text": "Talk to @Grok in your Tesla",
+  "likes": 3104,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "elonmusk",
+      "text": "Talk to @Grok in your Tesla",
+      "image": "1.png"
+    },
+    {
+      "slide_id": 2,
+      "type": "reply",
+      "author": "M13CrystalAT",
+      "text": "@elonmusk Bang bang I shut you down bang bang you hit the ground bang bang that awful sound bang bang baby I shot you down",
+      "image": "2.png"
+    },
+    {
+      "slide_id": 3,
+      "type": "reply",
+      "author": "MLife48029",
+      "text": "@elonmusk Great but all the AI down at same time?",
+      "image": "3.png"
+    },
+    {
+      "slide_id": 4,
+      "type": "reply",
+      "author": "CorkCork550215",
+      "text": "@elonmusk Say hi to base:0x2d57c47bc5d2432feeedf2c9150162a9862d3ccf to donate to prostate and colon cancer charities",
+      "image": "4.png"
+    },
+    {
+      "slide_id": 5,
+      "type": "reply",
+      "author": "_breannafaye",
+      "text": "@elonmusk @flcnhvy @lexfridman @Tesla What\u2019s going to be the commercial partner limit to buy in? 5? 10? 25? @elonmusk - don\u2019t leave out the little guys",
+      "image": "5.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
