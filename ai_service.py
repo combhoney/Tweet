@@ -47,31 +47,24 @@ Return JSON: {{"is_worthy": true/false, "reason": "...", "editorial_angle": "...
     return True, "Passed engagement check", "Breaking Story"
 
 def generate_tweet_commentary(author, tweet_text, top_replies=None):
-    prompt = f"""You are an elite US YouTube investigative news anchor (like Vox or Johnny Harris).
-Write a thrilling, fast-paced, multi-part 2.5-minute spoken commentary script (320-380 words) for USA viewers.
+    prompt = f"""You are an elite US YouTube news anchor.
+Write an engaging, dramatic 2.5-minute spoken commentary script (320-380 words) for USA viewers.
 
 Context:
 - Author: @{author}
 - Tweet Statement: "{tweet_text}"
 
-CRITICAL 4-STAGE STORY STRUCTURE (Matches visual slide transitions):
-1. STAGE 1 (The Explosive Hook): What was just posted by @{author} and why it's dominating timelines.
-2. STAGE 2 (The Hidden Context): The backstory, market reaction, or political stakes behind this.
-3. STAGE 3 (The Community War & Replies): What critics, top figures, and counter-tweets are saying in the replies.
-4. STAGE 4 (The Bigger Picture & Wrap): What happens next, and a strong call to action for viewers to comment below.
-
-Spoken English only: No asterisks, markdown, or timestamps in voiceover script.
+CRITICAL SCRIPT & THUMBNAIL RULES:
+1. SCRIPT: Continuous, exciting, multi-part broadcast script. No asterisks or timestamps.
+2. THUMBNAIL SLOGAN: Exactly ONE ultra-catchy 3 to 6 word ALL-CAPS hook for the thumbnail top banner (e.g. HE FINALLY BROKE HIS SILENCE! 🚨, TOTAL CHAOS ON X! 🔥, IT'S OFFICIALLY OVER! 😱).
 
 Return strictly valid JSON:
 {{
   "optimized_title": "Sensational High-CTR Title with emojis under 90 chars",
-  "voiceover_script": "Full continuous spoken script covering all 4 stages smoothly...",
+  "thumbnail_slogan": "ONE ULTRA PUNCHY 3-6 WORD SLOGAN IN ALL-CAPS",
+  "voiceover_script": "Full continuous spoken script...",
   "video_description": "Engaging description with summary and 4 hashtags",
-  "specific_tags": ["Breaking News", "Twitter Viral", "Trending X"],
-  "top_text": "BREAKING NEWS",
-  "row1_text": "EXPLOSIVE STATEMENT",
-  "row2_text": "Internet War",
-  "bot_text": "FULL BREAKDOWN"
+  "specific_tags": ["Breaking News", "Twitter Viral", "Trending X"]
 }}"""
 
     groq_queue = get_circular_key_queue("groq", "GROQ_API")
@@ -93,12 +86,7 @@ Return strictly valid JSON:
                         return (
                             data.get("optimized_title").strip()[:100],
                             data.get("voiceover_script").strip(),
-                            {
-                                "top_text": data.get("top_text", "BREAKING NEWS"),
-                                "row1_text": data.get("row1_text", "VIRAL ALERT"),
-                                "row2_text": data.get("row2_text", "Internet Shocked"),
-                                "bot_text": data.get("bot_text", "FULL BREAKDOWN")
-                            },
+                            {"thumbnail_slogan": data.get("thumbnail_slogan", "BREAKING NEWS ALERT! 🚨")},
                             data.get("video_description", "").strip(),
                             data.get("specific_tags", []) + DEFAULT_BASE_TAGS
                         )
@@ -118,12 +106,7 @@ Return strictly valid JSON:
                         return (
                             data.get("optimized_title").strip()[:100],
                             data.get("voiceover_script").strip(),
-                            {
-                                "top_text": data.get("top_text", "BREAKING NEWS"),
-                                "row1_text": data.get("row1_text", "VIRAL ALERT"),
-                                "row2_text": data.get("row2_text", "Internet Shocked"),
-                                "bot_text": data.get("bot_text", "FULL BREAKDOWN")
-                            },
+                            {"thumbnail_slogan": data.get("thumbnail_slogan", "BREAKING NEWS ALERT! 🚨")},
                             data.get("video_description", "").strip(),
                             data.get("specific_tags", []) + DEFAULT_BASE_TAGS
                         )
@@ -137,7 +120,17 @@ def generate_daily_top10_script(top10_tweets):
 Here are the top 10 tweets:
 {summary_text}
 
-Write a thrilling 7-8 minute full compilation script (900-1100 words). Output strictly valid JSON."""
+Write a thrilling 7-8 minute full compilation script (900-1100 words).
+Provide ONE ultra-catchy ALL-CAPS thumbnail slogan (e.g. TOP 10 CRAZIEST TWEETS TODAY! 🔥).
+
+Return strictly valid JSON:
+{{
+  "optimized_title": "TOP 10 CRAZIEST TWEETS OF THE DAY! (Internet Explodes) 🚨",
+  "thumbnail_slogan": "TOP 10 CRAZIEST TWEETS TODAY! 🔥",
+  "voiceover_script": "Full master continuous script...",
+  "video_description": "Daily Roundup of the 10 most viral tweets on X today.",
+  "specific_tags": ["Top 10 Tweets", "Twitter Viral", "Trending News"]
+}}"""
 
     groq_queue = get_circular_key_queue("groq", "GROQ_API")
     for actual_idx, g_key in groq_queue:
@@ -156,12 +149,7 @@ Write a thrilling 7-8 minute full compilation script (900-1100 words). Output st
                     return (
                         data.get("optimized_title").strip()[:100],
                         data.get("voiceover_script").strip(),
-                        {
-                            "top_text": data.get("top_text", "DAILY ROUNDUP"),
-                            "row1_text": data.get("row1_text", "TOP 10 TWEETS"),
-                            "row2_text": data.get("row2_text", "Internet Explodes"),
-                            "bot_text": data.get("bot_text", "FULL RECAP")
-                        },
+                        {"thumbnail_slogan": data.get("thumbnail_slogan", "TOP 10 CRAZIEST TWEETS TODAY! 🔥")},
                         data.get("video_description", "").strip(),
                         data.get("specific_tags", []) + DEFAULT_BASE_TAGS
                     )
