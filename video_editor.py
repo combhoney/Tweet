@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os
+import os, math
 import numpy as np
 from PIL import Image, ImageFilter, ImageDraw, ImageFont
 from moviepy.editor import AudioFileClip, VideoClip, concatenate_videoclips
@@ -32,7 +32,6 @@ def crop_tweet_card_strict(pil_img):
     return pil_img.convert("RGB")
 
 def prepare_subtitle_cues(script_text, total_duration):
-    """স্ক্রিপ্টটিকে কথার গতির সাথে মিলিয়ে ৪-৫ শব্দের ছোট ছোট সাবটাইটেল অংশে ভাগ করে"""
     words = script_text.strip().split()
     if not words or total_duration <= 0:
         return []
@@ -55,45 +54,37 @@ def prepare_subtitle_cues(script_text, total_duration):
     return cues
 
 def draw_subtitle(canvas, current_text, font, target_w, target_h):
-    """হলুদ টেক্সট এবং কালো ওভারলে বক্স দিয়ে সাবটাইটেল আঁকে"""
-    if not current_text:
-        return
-
+    if not current_text: return
     draw = ImageDraw.Draw(canvas)
     bbox = font.getbbox(current_text)
-    tw = bbox[2] - bbox[0]
-    th = bbox[3] - bbox[1]
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
 
-    pad_x = 24
-    pad_y = 12
-    box_w = tw + pad_x * 2
-    box_h = th + pad_y * 2
-
-    # সাবটাইটেল বক্সের পজিশন (স্ক্রিনের একদম নিচের দিকে, Y = 980)
+    pad_x, pad_y = 26, 12
+    box_w, box_h = tw + pad_x * 2, th + pad_y * 2
     box_center_y = 980
+
     box_x1 = (target_w - box_w) // 2
     box_y1 = box_center_y - (box_h // 2)
     box_x2 = box_x1 + box_w
     box_y2 = box_y1 + box_h
 
-    # ১. কালো ব্যাকগ্রাউন্ড ওভারলে (রাউন্ডেড পিল বক্স)
     draw.rounded_rectangle([box_x1, box_y1, box_x2, box_y2], radius=14, fill="#080c10", outline="#000000", width=2)
-
-    # ২. উজ্জ্বল হলুদ সাবটাইটেল টেক্সট
     draw.text((target_w // 2, box_center_y), current_text, font=font, fill="#FFE600", anchor="mm")
 
 def make_sliding_tweet_frame(img_path, duration, script_text="", target_w=1920, target_h=1080, direction="right_to_left"):
+    """
+    টুইট কার্ডটিকে স্ক্রিনের এক পাশ থেকে অপর পাশে দৃশ্যমান ও মাখনের মতো মসৃণ গতিতে স্লাইড করায়
+    """
     raw_img = Image.open(img_path)
     cropped_card = crop_tweet_card_strict(raw_img)
 
-    # ১. ব্যাকগ্রাউন্ড: ব্লার ক্যানভাস
     bg_img = cropped_card.resize((target_w, target_h), Image.LANCZOS).filter(ImageFilter.GaussianBlur(radius=35))
     dark_overlay = Image.new("RGB", (target_w, target_h), "#06090e")
     bg_img = Image.blend(bg_img, dark_overlay, alpha=0.40)
 
-    # ২. ফোরগ্রাউন্ড: মূল টুইট কার্ডটি স্কেল করা (যাতে নিচে সাবটাইটেলের জন্য ১৫০px সম্পূর্ণ ফাঁকা থাকে)
-    max_card_h = int(target_h * 0.74) # সর্বোচ্চ ৮০০ পিক্সেল উচ্চতা
-    scale = min((target_w * 0.85) / cropped_card.width, max_card_h / cropped_card.height)
+    # স্কেলিং: যাতে দুই পাশে ৩৫০px পর্যাপ্ত জায়গা থাকে মুভ করার জন্য
+    max_card_h = int(target_h * 0.74)
+    scale = min((target_w * 0.76) / cropped_card.width, max_card_h / cropped_card.height)
     base_w = int(cropped_card.width * scale)
     base_h = int(cropped_card.height * scale)
     fg_card = cropped_card.resize((base_w, base_h), Image.LANCZOS)
@@ -101,25 +92,31 @@ def make_sliding_tweet_frame(img_path, duration, script_text="", target_w=1920, 
     raw_img.close()
     cropped_card.close()
 
-    # কার্ডটিকে ওপরের অংশে সেন্টারে রাখা (Y: 40 থেকে 880 এর মধ্যে), নিচে সাবটাইটেলের সাথে কখনো ঠেকবে না
     card_y = 45 + ((860 - base_h) // 2)
-    max_drift = 90
+
+    # 🌟 দৃশ্যমান ও গতিশীল স্লাইডিং দূরত্ব (৩৫০ পিক্সেল মোশন)
+    travel_distance = 350
+    half_travel = travel_distance / 2.0
 
     sub_font = get_subtitle_font(44)
     subtitle_cues = prepare_subtitle_cues(script_text, duration)
 
     def frame_getter(t):
-        progress = min(1.0, max(0.0, t / duration if duration > 0 else 0))
+        raw_progress = min(1.0, max(0.0, t / duration if duration > 0 else 0))
+        # 🌟 Sinusoidal Ease-in-Out: কোনো কাঁপাকাঁপি ছাড়া ১০০% স্মুথ ত্বরণ ও মন্দন
+        eased_progress = 0.5 - 0.5 * math.cos(math.pi * raw_progress)
+
         if direction == "right_to_left":
-            x_shift = int((0.5 - progress) * max_drift)
+            # ডান পাশ থেকে শুরু হয়ে সম্পূর্ণভাবে বাম পাশে যাবে
+            x_shift = (0.5 - eased_progress) * travel_distance
         else:
-            x_shift = int((progress - 0.5) * max_drift)
+            # বাম পাশ থেকে শুরু হয়ে সম্পূর্ণভাবে ডান পাশে যাবে
+            x_shift = (eased_progress - 0.5) * travel_distance
 
         canvas = bg_img.copy()
-        offset_x = ((target_w - base_w) // 2) + x_shift
+        offset_x = int(((target_w - base_w) // 2) + x_shift)
         canvas.paste(fg_card, (offset_x, card_y))
 
-        # বর্তমান সময় অনুযায়ী সাবটাইটেল টেক্সট খুঁজে আঁকা
         active_text = ""
         for cue in subtitle_cues:
             if cue["start"] <= t <= cue["end"]:
@@ -134,9 +131,6 @@ def make_sliding_tweet_frame(img_path, duration, script_text="", target_w=1920, 
     return VideoClip(frame_getter, duration=duration)
 
 def render_synchronized_video(paired_slides, out_file):
-    """
-    paired_slides = [ (img_path, aud_path, script_text), ... ]
-    """
     target_w, target_h = 1920, 1080
     video_clips = []
 
@@ -150,6 +144,7 @@ def render_synchronized_video(paired_slides, out_file):
         audio_clip = AudioFileClip(aud_path)
         seg_duration = audio_clip.duration
         
+        # পর্যায়ক্রমে এক স্লাইডে Right-to-Left, পরের স্লাইডে Left-to-Right
         direction = "right_to_left" if (idx % 2 == 0) else "left_to_right"
         v_clip = make_sliding_tweet_frame(img_path, seg_duration, script_text=script_text, target_w=target_w, target_h=target_h, direction=direction)
         v_clip = v_clip.set_audio(audio_clip)
