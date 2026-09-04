@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, json, time, requests
+import os, json, time, random, requests
 from config import WORKSPACE_DIR, HISTORY_FILE, VIP_HANDLES, RUN_MODE, SCAN_WINDOW_HOURS
 from key_manager import get_circular_key_queue
 from ai_service import ai_gatekeeper_check
@@ -28,7 +28,7 @@ def get_processed_history():
 def fetch_live_tweets_fxtwitter(handle):
     url = f"https://api.fxtwitter.com/2/profile/{handle}/statuses"
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=10)
+        resp = requests.get(url, headers=HEADERS, timeout=8)
         if resp.status_code == 200:
             res = resp.json().get("results", []) or resp.json().get("statuses", [])
             tweets = []
@@ -36,14 +36,12 @@ def fetch_live_tweets_fxtwitter(handle):
                 tid = str(t.get("id") or t.get("id_str") or "")
                 text = t.get("text", "")
                 likes = int(t.get("likes", t.get("favorite_count", 0)))
-                replies_count = int(t.get("replies", 0))
                 created_at = t.get("created_timestamp") or t.get("created_at")
                 if tid and text:
                     tweets.append({
                         "id": tid,
                         "text": text,
                         "likes": likes,
-                        "replies_count": replies_count,
                         "author": handle,
                         "created_timestamp": created_at,
                         "url": f"https://x.com/{handle}/status/{tid}"
@@ -53,11 +51,7 @@ def fetch_live_tweets_fxtwitter(handle):
     return []
 
 def fetch_direct_replies_for_tweet(author, tweet_id, max_needed=7):
-    """
-    শুধুমাত্র এই নির্দিষ্ট টুইটের নিচে আসা আসল রিপ্লাই ও কমেন্টগুলো সংগ্রহ করে
-    """
     direct_replies = []
-    # ডিরেক্ট রিপ্লাই সার্চ
     search_url = f"https://api.fxtwitter.com/2/search?q=to:{author}&sort=top"
     try:
         resp = requests.get(search_url, headers=HEADERS, timeout=8)
@@ -75,8 +69,7 @@ def fetch_direct_replies_for_tweet(author, tweet_id, max_needed=7):
                             "text": rtext,
                             "likes": int(r.get("likes", 0))
                         })
-                if len(direct_replies) >= max_needed:
-                    break
+                if len(direct_replies) >= max_needed: break
     except Exception: pass
     return direct_replies
 
@@ -101,15 +94,20 @@ def capture_clean_screenshot(tweet_id, output_path):
 def hunt_2hour_breaking_tweets():
     init_workspace()
     history = get_processed_history()
-    print(f"\n🔍 [TWEET HUNTER] Scanning last {SCAN_WINDOW_HOURS} hours for high-potential tweets...")
-    
     now_ts = time.time()
     time_window_sec = SCAN_WINDOW_HOURS * 3600
     staged_folders = []
 
-    for handle in VIP_HANDLES:
-        print(f"📡 Scanning @{handle}...")
+    # 🌟 গুরুত্বপূর্ণ সমাধান: প্রতি রানে ১০০টি অ্যাকাউন্টকে র‍্যান্ডমাইজ করা হবে
+    # এতে শুধু ইলন মাস্কের ওপর নির্ভর না হয়ে অন্যান্য সেলিব্রিটি ও লিডারদের পোস্ট সুযোগ পাবে
+    shuffled_handles = VIP_HANDLES.copy()
+    random.shuffle(shuffled_handles)
+
+    print(f"\n🔍 [TWEET HUNTER] Scanning {len(shuffled_handles)} VIP accounts in dynamic randomized order (Last {SCAN_WINDOW_HOURS} hours)...")
+
+    for handle in shuffled_handles:
         tweets = fetch_live_tweets_fxtwitter(handle)
+        if not tweets: continue
 
         for tweet in tweets:
             tid = tweet["id"]
@@ -126,30 +124,25 @@ def hunt_2hour_breaking_tweets():
                 if (now_ts - created_ts) > time_window_sec:
                     continue
 
-            # 🤖 AI Gatekeeper চেক
             is_worthy, reason, angle = ai_gatekeeper_check(handle, tweet_text, likes)
             if not is_worthy:
                 continue
 
-            print(f"  🔥 [APPROVED] @{handle} ({likes:,} Likes) ➔ \"{tweet_text[:60]}...\"")
-            
+            print(f"\n🔥 [APPROVED] @{handle} ({likes:,} Likes) ➔ \"{tweet_text[:60]}...\"")
             folder_path = os.path.join(WORKSPACE_DIR, folder_name)
             os.makedirs(folder_path, exist_ok=True)
             
-            # ১. মূল টুইটের ছবি (1.png)
             img_main = os.path.join(folder_path, "1.png")
             if capture_clean_screenshot(tid, img_main):
                 slides_data = [
                     {"slide_id": 1, "type": "main", "author": handle, "text": tweet_text, "image": "1.png"}
                 ]
 
-                # ২. এই টুইটের আসল কমেন্ট ও রিপ্লাই সংগ্রহ (2.png, 3.png...)
-                print(f"  💬 Collecting direct community replies for @{handle}...")
+                print(f"  💬 Collecting community replies for @{handle}...")
                 replies = fetch_direct_replies_for_tweet(handle, tid, max_needed=6)
                 
                 for idx, rep in enumerate(replies, start=2):
                     rep_img_path = os.path.join(folder_path, f"{idx}.png")
-                    print(f"    📸 Capturing Reply #{idx} (@{rep['author']})...")
                     if capture_clean_screenshot(rep["id"], rep_img_path):
                         slides_data.append({
                             "slide_id": idx,
@@ -172,12 +165,13 @@ def hunt_2hour_breaking_tweets():
                     }, jf, indent=2)
 
                 staged_folders.append(folder_name)
-                print(f"  ✅ Staged {len(slides_data)}-Slide Perfectly Synced Video: {folder_name}")
+                print(f"  ✅ Staged {len(slides_data)}-Slide Synced Video for @{handle}!")
+                break # প্রতি অ্যাকাউন্ট থেকে ১টি করে ব্রেকিং ভিডিও নেবে যাতে একজন মনোপলি না করে
 
+    print(f"\n🎯 Total {len(staged_folders)} diverse breaking video(s) staged.\n")
     return staged_folders
 
 def hunt_daily_top10_viral_tweets():
-    # ২৪ ঘণ্টার মোড
     return hunt_2hour_breaking_tweets()
 
 def hunt_and_prepare_viral_tweets():
