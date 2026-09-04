@@ -41,7 +41,7 @@ def process_and_publish_videos(yt):
 
             print(f"\n========== Processing: {folder_name} ({len(slides_data)} Synced Slides) ==========")
 
-            # ১. প্রতিটি স্লাইড ও কমেন্টের সাথে মিলিয়ে সিঙ্কড স্ক্রিপ্ট তৈরি
+            # ১. স্ক্রিপ্ট তৈরি
             ai_data = generate_synchronized_script(slides_data)
             if not ai_data or not ai_data.get("segments"):
                 print(f"🛑 Synced script generation failed for {folder_name}")
@@ -52,7 +52,7 @@ def process_and_publish_videos(yt):
             desc = ai_data.get("video_description", "")
             segments = ai_data.get("segments", [])
 
-            # ২. প্রতিটি স্লাইডের জন্য আলাদা আলাদা অডিও জেনারেশন
+            # ২. অডিও সিন্থেসিস ও সাবটাইটেল ডেটা পেয়ারিং
             paired_slides = []
             audio_success = True
 
@@ -66,7 +66,8 @@ def process_and_publish_videos(yt):
                 
                 print(f"  🎙️ Synthesizing Audio for Slide #{idx}: \"{script_text[:45]}...\"")
                 if synthesize_audio_segment(script_text, aud_path):
-                    paired_slides.append((img_path, aud_path))
+                    # 🌟 ছবি, অডিও এবং সাবটাইটেল টেক্সট একসাথে পাস করা হলো
+                    paired_slides.append((img_path, aud_path, script_text))
                 else:
                     audio_success = False
                     break
@@ -85,11 +86,11 @@ def process_and_publish_videos(yt):
             main_tweet_img = os.path.join(folder_path, "1.png")
             generate_dynamic_thumbnail(main_tweet_img, thumb_path, slogan)
 
-            # ৪. ১০০% ফ্রেম-পারফেক্ট সিঙ্ক্রোনাইজড ভিডিও রেন্ডারিং
-            print(f"🎬 Rendering {len(paired_slides)} 100% Synced Slides into Video...")
+            # ৪. সাবটাইটেল সহ ১৬:৯ ভিডিও রেন্ডারিং
+            print(f"🎬 Rendering {len(paired_slides)} Synced Slides with Yellow Subtitles & Dark Overlay...")
             render_synchronized_video(paired_slides, out_video)
 
-            # ৫. আপলোড
+            # ৫. আপলোড (ইউটিউব বা ড্রাইভ)
             if UPLOAD_TO_YOUTUBE:
                 upload_success = upload_to_youtube(yt, out_video, opt_title, thumb_path, desc, ['Breaking News', 'X Viral'])
             else:
@@ -98,7 +99,7 @@ def process_and_publish_videos(yt):
             if upload_success:
                 save_tweet_ids_to_history([tweet_meta.get("tweet_id")])
                 shutil.rmtree(folder_path, ignore_errors=True)
-                print(f"✅ Video Uploaded & Cleaned: {folder_name}\n")
+                print(f"✅ Video Finished & Uploaded: {folder_name}\n")
 
         except Exception as e:
             print(f"❌ Error in {folder_name}: {e}")
