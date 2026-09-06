@@ -19,7 +19,7 @@ def crop_tweet_card_strict(pil_img):
     except Exception: pass
     return pil_img.convert("RGB")
 
-def get_minimal_font(font_size=64):
+def get_bold_font(font_size=90):
     font_paths = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
@@ -31,9 +31,39 @@ def get_minimal_font(font_size=64):
             except Exception: pass
     return ImageFont.load_default()
 
+def fit_slogan_lines(slogan, max_w):
+    """
+    🌟 লেখা কখনোই ছোট হবে না:
+    লেখা ১ লাইনে ফিট হলে বড় ফন্টে (১০৫px) আসবে, বড় হলে সুন্দরভাবে ২ লাইনে (৮৫-৯৫px) ভাগ হয়ে যাবে
+    """
+    words = slogan.split()
+    
+    # ১. প্রথমে ১ লাইনে বড় ফন্টে ট্রাই করা (১০৫px থেকে ৮৫px)
+    for fs in range(105, 84, -3):
+        font = get_bold_font(fs)
+        bbox = font.getbbox(slogan)
+        if (bbox[2] - bbox[0]) <= max_w:
+            return [slogan], font, fs
+
+    # ২. ১ লাইনে না ধরলে ২ লাইনে বড় ফন্টে ট্রাই করা (৯৫px থেকে ৭০px)
+    mid = len(words) // 2
+    line1 = " ".join(words[:mid])
+    line2 = " ".join(words[mid:])
+    
+    for fs in range(95, 68, -3):
+        font = get_bold_font(fs)
+        w1 = font.getbbox(line1)[2] - font.getbbox(line1)[0]
+        w2 = font.getbbox(line2)[2] - font.getbbox(line2)[0]
+        if max(w1, w2) <= max_w:
+            return [line1, line2], font, fs
+
+    # ফলব্যাক
+    font = get_bold_font(70)
+    return [slogan], font, 70
+
 def generate_dynamic_thumbnail(tweet_img_path, output_path, slogan_text):
     """
-    মিনিমালিস্ট ডিজাইন: উপরে মূল টুইটের বড় ছবি এবং নিচে স্লিক ফ্লোটিং টেক্সট বক্স
+    মডার্ন মিনিমালিস্ট থাম্বনেইল: উপরে মূল টুইটের বড় ছবি এবং নিচে বিশাল বোল্ড টেক্সট বক্স
     """
     W, H = 1920, 1080
     
@@ -44,71 +74,70 @@ def generate_dynamic_thumbnail(tweet_img_path, output_path, slogan_text):
     else:
         cropped_tweet = Image.new("RGB", (1200, 600), "#15202b")
 
-    # ২. ব্যাকগ্রাউন্ড: শান্ত ও গভীর ডার্ক ব্লার ক্যানভাস
+    # ২. ব্যাকগ্রাউন্ড: গাঢ় ও আকর্ষণীয় ব্লার ক্যানভাস
     bg = cropped_tweet.resize((W, H), Image.LANCZOS).filter(ImageFilter.GaussianBlur(radius=40))
-    dark_overlay = Image.new("RGB", (W, H), "#070a0f")
-    bg = Image.blend(bg, dark_overlay, alpha=0.55)
+    dark_overlay = Image.new("RGB", (W, H), "#06090e")
+    bg = Image.blend(bg, dark_overlay, alpha=0.52)
     draw = ImageDraw.Draw(bg)
 
-    # ৩. উপরে মূল টুইট কার্ডটি প্লেস করা (Y: 45 থেকে 830)
-    top_area_h = 780
-    avail_w = W - 180          # 1740px
-    avail_h = top_area_h - 40  # 740px
-
-    scale = min(avail_w / cropped_tweet.width, avail_h / cropped_tweet.height)
-    card_w = int(cropped_tweet.width * scale)
-    card_h = int(cropped_tweet.height * scale)
-
-    fg_card = cropped_tweet.resize((card_w, card_h), Image.LANCZOS)
-    offset_x = (W - card_w) // 2
-    offset_y = 45 + ((avail_h - card_h) // 2)
-
-    # টুইট কার্ডের চারপাশে আধুনিক মিনিমালিস্ট বর্ডার
-    border_box = [offset_x - 3, offset_y - 3, offset_x + card_w + 3, offset_y + card_h + 3]
-    draw.rounded_rectangle(border_box, radius=8, outline="#2d3748", width=2)
-    bg.paste(fg_card, (offset_x, offset_y))
-
-    # ৪. নিচে স্লোগান টেক্সট বক্স (Y: 860 থেকে 1040)
+    # ৩. নিচে লেখার মাপ ও ফন্ট নির্ধারণ (বিশাল সাইজ)
     slogan = str(slogan_text).upper().strip()
-    font_size = 66
-    font = get_minimal_font(font_size)
+    max_box_text_w = W - 220 # 1700px
+    lines, font, final_font_size = fit_slogan_lines(slogan, max_box_text_w)
 
-    # ফন্ট সাইজ স্বয়ংক্রিয়ভাবে বক্সে ফিট করা
-    max_text_w = W - 260
-    while font_size > 36:
-        font = get_minimal_font(font_size)
-        bbox = font.getbbox(slogan)
-        if (bbox[2] - bbox[0]) <= max_text_w:
-            break
-        font_size -= 2
+    # লাইনের উচ্চতা ও প্যাডিং হিসাব
+    sample_bbox = font.getbbox("AY")
+    line_h = sample_bbox[3] - sample_bbox[1]
+    line_spacing = 16
+    total_text_h = (line_h * len(lines)) + (line_spacing * (len(lines) - 1))
 
-    bbox = font.getbbox(slogan)
-    tw = bbox[2] - bbox[0]
-    th = bbox[3] - bbox[1]
+    box_pad_x = 50
+    box_pad_y = 24
+    
+    # টেক্সটের সর্বোচ্চ প্রস্থ মেপে বক্সের সাইজ করা
+    max_measured_w = max([font.getbbox(l)[2] - font.getbbox(l)[0] for l in lines])
+    box_w = min(max_measured_w + (box_pad_x * 2), W - 140)
+    box_h = total_text_h + (box_pad_y * 2)
 
-    # ফ্লোটিং ক্যাপসুল বক্সের মাপ
-    box_pad_x = 44
-    box_pad_y = 20
-    box_w = min(tw + box_pad_x * 2, W - 160)
-    box_h = th + box_pad_y * 2
-    box_center_y = 955
-
+    # নিচে বক্সের অবস্থান নির্ধারণ
+    box_center_y = 960 if len(lines) == 1 else 940
     box_x1 = (W - box_w) // 2
     box_y1 = box_center_y - (box_h // 2)
     box_x2 = box_x1 + box_w
     box_y2 = box_y1 + box_h
 
-    # মিনিমালিস্ট ডার্ক অবসিডিয়ান বক্স + প্রিমিয়াম গোল্ডেন আউটলাইন
+    # ৪. উপরে মূল টুইট কার্ড প্লেস করা (বক্সের সাথে যাতে না ঠেকে)
+    top_avail_h = box_y1 - 50 # বক্সের ঠিক ওপর পর্যন্ত খালি জায়গা (~720px)
+    top_avail_w = W - 180
+
+    scale = min(top_avail_w / cropped_tweet.width, top_avail_h / cropped_tweet.height)
+    card_w = int(cropped_tweet.width * scale)
+    card_h = int(cropped_tweet.height * scale)
+
+    fg_card = cropped_tweet.resize((card_w, card_h), Image.LANCZOS)
+    offset_x = (W - card_w) // 2
+    offset_y = 35 + ((top_avail_h - card_h) // 2)
+
+    # কার্ডের চারপাশে প্রিমিয়াম স্লিক বর্ডার
+    border_box = [offset_x - 3, offset_y - 3, offset_x + card_w + 3, offset_y + card_h + 3]
+    draw.rounded_rectangle(border_box, radius=8, outline="#334155", width=2)
+    bg.paste(fg_card, (offset_x, offset_y))
+
+    # ৫. নিচে মিনিমালিস্ট ডার্ক ম্যাট বক্স আঁকা
     draw.rounded_rectangle(
         [box_x1, box_y1, box_x2, box_y2],
-        radius=18,
-        fill="#0d1117",
-        outline="#ffcc00",
+        radius=20,
+        fill="#0b0f17",      # ডিপ ম্যাট অবসিডিয়ান ব্যাকগ্রাউন্ড
+        outline="#ffcc00",   # গোল্ডেন-অ্যাকসেন্ট আউটলাইন
         width=3
     )
 
-    # ক্রিস্প হোয়াইট আধুনিক টেক্সট
-    draw.text((W // 2, box_center_y), slogan, font=font, fill="#ffffff", anchor="mm")
+    # ৬. বিশাল বড় ও স্পষ্ট টেক্সট আঁকা
+    start_y = box_y1 + box_pad_y + (line_h // 2)
+    for i, line in enumerate(lines):
+        cur_y = start_y + (i * (line_h + line_spacing))
+        # উজ্জ্বল হলুদ টেক্সট (#FFE600) যা সবচেয়ে বেশি দূর থেকে ও মোবাইলে দ্রুত চোখে পড়ে
+        draw.text((W // 2, cur_y), line, font=font, fill="#FFE600", anchor="mm")
 
     bg.save(output_path, "JPEG", quality=100)
-    print(f"🎨 [THUMBNAIL] Generated Minimalist Thumbnail (Image Top, Slogan Bottom): '{slogan}'")
+    print(f"🎨 [THUMBNAIL] Generated Big-Font Thumbnail ({final_font_size}px): '{slogan}'")
