@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2098773920774074715",
+  "author": "AnthropicAI",
+  "url": "https://x.com/AnthropicAI/status/2098773920774074715",
+  "text": "We Must Pace the Frontier: I\u2019ve written a new essay on why the AI industry should slow down, with a three-part plan for doing so.\n\nAnthropic is unilaterally committing to the first of these steps. We\u2019ll provide third-party evaluators with permanent, employee-level access to our systems, so that they can verify adherence to our safety measures, report on incidents, and assess models\u2019 alignment during training.\n\nYou can read the full post here: https://darioamodei.com/post/we-must-pace-the-frontier",
+  "likes": 30219,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "AnthropicAI",
+      "text": "We Must Pace the Frontier: I\u2019ve written a new essay on why the AI industry should slow down, with a three-part plan for doing so.\n\nAnthropic is unilaterally committing to the first of these steps. We\u2019ll provide third-party evaluators with permanent, employee-level access to our systems, so that they can verify adherence to our safety measures, report on incidents, and assess models\u2019 alignment during training.\n\nYou can read the full post here: https://darioamodei.com/post/we-must-pace-the-frontier",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
