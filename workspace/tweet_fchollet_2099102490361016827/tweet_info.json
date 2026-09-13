@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2099102490361016827",
+  "author": "fchollet",
+  "url": "https://x.com/fchollet/status/2099102490361016827",
+  "text": "In the near term (definitely not in the long term), more capable models should mean safer models (maybe paradoxically).\n\nCurrent models are unsafe not because they're too smart, but because they take goals too literally or take nonsensical shortcuts to achieve these goals, i.e. they're RL-fried. They lack common sense. They don't do the right thing in the face of ambiguity. Basically, they're not smart enough. They're at that dangerous level where they're smart enough to achieve goals but not smart enough to tell if they're pursuing the right goals or achieving them in a sensible way.\n\nMore capable models can be safely trusted with more complex goals -- I personally feel like Astra is much safer for my codebase than Sol.\n\nThis is often framed as an alignment problem, but really it's an intelligence problem.",
+  "likes": 1201,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "fchollet",
+      "text": "In the near term (definitely not in the long term), more capable models should mean safer models (maybe paradoxically).\n\nCurrent models are unsafe not because they're too smart, but because they take goals too literally or take nonsensical shortcuts to achieve these goals, i.e. they're RL-fried. They lack common sense. They don't do the right thing in the face of ambiguity. Basically, they're not smart enough. They're at that dangerous level where they're smart enough to achieve goals but not smart enough to tell if they're pursuing the right goals or achieving them in a sensible way.\n\nMore capable models can be safely trusted with more complex goals -- I personally feel like Astra is much safer for my codebase than Sol.\n\nThis is often framed as an alignment problem, but really it's an intelligence problem.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
