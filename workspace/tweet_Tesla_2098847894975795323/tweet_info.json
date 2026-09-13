@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2098847894975795323",
+  "author": "Tesla",
+  "url": "https://x.com/Tesla/status/2098847894975795323",
+  "text": "https://www.tesla.com/roadster",
+  "likes": 6103,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "Tesla",
+      "text": "https://www.tesla.com/roadster",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}

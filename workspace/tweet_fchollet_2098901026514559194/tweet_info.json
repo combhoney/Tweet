@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2098901026514559194",
+  "author": "fchollet",
+  "url": "https://x.com/fchollet/status/2098901026514559194",
+  "text": "I hope the proposals by frontier labs to pace AI research stem from a genuine concern for safety and a recognition of the potential risks posed by future models, rather than a strategic effort to consolidate power and permanently solidify the market dominance of a few top players.\n\nIf these efforts are genuine, then oversight must take a more democratic and accountable form, with both national and international components, similar to the Nuclear Regulatory Commission in the US and the International Atomic Energy Agency internationally.\n\nIf there is only one organization responsible for safety monitoring, and it happens to be staffed by the same people as the frontier labs, and it is perfectly aligned with them both by incentives and by ideology, then it would be indistinguishable from letting frontier labs self-regulate and self-certify their own safety standards.\n\nTwo potential warning signs of regulatory capture to watch out for:\n\n1. Calls to ban open-source AI. Open-source development currently serves as the only real counterweight to the dominance of frontier labs.\n\n2. Attempts to hinder non-frontier research. Models that are one or two generations behind the frontier -- whose level of capability has already been deployed at scale -- are empirically known not to pose safety risks.\n\nAs long as we don't see 1 & 2, and we see real international coordination efforts, then I will optimistically believe that the proposals are benevolent.",
+  "likes": 419,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "fchollet",
+      "text": "I hope the proposals by frontier labs to pace AI research stem from a genuine concern for safety and a recognition of the potential risks posed by future models, rather than a strategic effort to consolidate power and permanently solidify the market dominance of a few top players.\n\nIf these efforts are genuine, then oversight must take a more democratic and accountable form, with both national and international components, similar to the Nuclear Regulatory Commission in the US and the International Atomic Energy Agency internationally.\n\nIf there is only one organization responsible for safety monitoring, and it happens to be staffed by the same people as the frontier labs, and it is perfectly aligned with them both by incentives and by ideology, then it would be indistinguishable from letting frontier labs self-regulate and self-certify their own safety standards.\n\nTwo potential warning signs of regulatory capture to watch out for:\n\n1. Calls to ban open-source AI. Open-source development currently serves as the only real counterweight to the dominance of frontier labs.\n\n2. Attempts to hinder non-frontier research. Models that are one or two generations behind the frontier -- whose level of capability has already been deployed at scale -- are empirically known not to pose safety risks.\n\nAs long as we don't see 1 & 2, and we see real international coordination efforts, then I will optimistically believe that the proposals are benevolent.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
