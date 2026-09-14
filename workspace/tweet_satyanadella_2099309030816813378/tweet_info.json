@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2099309030816813378",
+  "author": "satyanadella",
+  "url": "https://x.com/satyanadella/status/2099309030816813378",
+  "text": "Great example from @jeffhollan showing how Foundry makes long-running agents enterprise-ready, starting with business outcomes and building security, safety guardrails, auditability, and FinOps into the system from the start, across the entire multi-agent, multi-model workflow.",
+  "likes": 505,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "satyanadella",
+      "text": "Great example from @jeffhollan showing how Foundry makes long-running agents enterprise-ready, starting with business outcomes and building security, safety guardrails, auditability, and FinOps into the system from the start, across the entire multi-agent, multi-model workflow.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
