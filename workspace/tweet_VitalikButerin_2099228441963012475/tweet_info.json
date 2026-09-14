@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2099228441963012475",
+  "author": "VitalikButerin",
+  "url": "https://x.com/VitalikButerin/status/2099228441963012475",
+  "text": "It's possible that a killer app of adversarial governance mechanism design theory will end up being AI safety.\n\nCompare:\n\nhttps://vitalik.eth.limo/general/2020/09/11/coordination.html\n\nhttps://aiprospects.substack.com/p/preventing-ai-collusion-are-you-paying\n\nThere's a deep duality between the two environments. Both are about a less-sophisticated principal trying to get ideal outcomes from a set of more-sophisticated agents: in the first case, the principal is a static algorithm and the agents are humans, in the second case, the principal is humans plus weaker LLMs and the agents are stronger LLMs.\n\nA key finding was that you can achieve much better outcomes if you can guarantee limits to how much agents can collude (see: Nash equilibria being abundant, vs. cooperative-game-theory \"cores\" often being empty). That argument should naturally transfer to this new setting.",
+  "likes": 776,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "VitalikButerin",
+      "text": "It's possible that a killer app of adversarial governance mechanism design theory will end up being AI safety.\n\nCompare:\n\nhttps://vitalik.eth.limo/general/2020/09/11/coordination.html\n\nhttps://aiprospects.substack.com/p/preventing-ai-collusion-are-you-paying\n\nThere's a deep duality between the two environments. Both are about a less-sophisticated principal trying to get ideal outcomes from a set of more-sophisticated agents: in the first case, the principal is a static algorithm and the agents are humans, in the second case, the principal is humans plus weaker LLMs and the agents are stronger LLMs.\n\nA key finding was that you can achieve much better outcomes if you can guarantee limits to how much agents can collude (see: Nash equilibria being abundant, vs. cooperative-game-theory \"cores\" often being empty). That argument should naturally transfer to this new setting.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
