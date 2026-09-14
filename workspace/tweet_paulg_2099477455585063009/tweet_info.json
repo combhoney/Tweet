@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2099477455585063009",
+  "author": "paulg",
+  "url": "https://x.com/paulg/status/2099477455585063009",
+  "text": "One data point in technology making everyone richer: the cost of lighting has decreased by over 1000x.",
+  "likes": 1617,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "paulg",
+      "text": "One data point in technology making everyone richer: the cost of lighting has decreased by over 1000x.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
