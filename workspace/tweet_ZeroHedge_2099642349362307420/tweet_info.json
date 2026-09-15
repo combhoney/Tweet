@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2099642349362307420",
+  "author": "ZeroHedge",
+  "url": "https://x.com/ZeroHedge/status/2099642349362307420",
+  "text": "Anthropic's models never 'went rogue'. They entirely followed the boundaries set by Anthropic employees. \n\nAn Anthropic employees instructed them to exploit a target, called a flag, which shared the same name as a real company. Which it did.\n\nA false flag attack, if you will.",
+  "likes": 1825,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "ZeroHedge",
+      "text": "Anthropic's models never 'went rogue'. They entirely followed the boundaries set by Anthropic employees. \n\nAn Anthropic employees instructed them to exploit a target, called a flag, which shared the same name as a real company. Which it did.\n\nA false flag attack, if you will.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
