@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2099634149363728628",
+  "author": "Tesla",
+  "url": "https://x.com/Tesla/status/2099634149363728628",
+  "text": "FSD Supervised w/ Grok is a lot like having your own Robotaxi",
+  "likes": 966,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "Tesla",
+      "text": "FSD Supervised w/ Grok is a lot like having your own Robotaxi",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
