@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2099741633868865621",
+  "author": "elonmusk",
+  "url": "https://x.com/elonmusk/status/2099741633868865621",
+  "text": "Elon just gave a much more practical explanation of the current AI safety problem....and laid out a practical framework for making frontier AI safer\n\nOpenAI and Anthropic are the two leading AI companies....and their models are close enough in capability that it\u2019s incredibly difficult for either one to slow down without basically handing the lead to the other\n\nElon also made an important distinction:\n\nOn balance, Anthropic puts more care into safety than OpenAI....but even people inside Anthropic are publicly worried about what their own models can do\n\nSo instead of asking one company to voluntarily fall behind, Elon\u2019s solution is much more practical:\n\nHave Anthropic run its safety test harness on OpenAI models\n\nHave OpenAI test Anthropic\nHave SpaceXAI test both\nAnd bring the leading Chinese AI companies into the same system\n\nEveryone tries to break everyone else\u2019s models before release\n\n\u201cThe odds that you will find issues are dramatically greater\u201d\n\nThat makes way more sense than asking frontier labs to grade their own homework",
+  "likes": 1624,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "elonmusk",
+      "text": "Elon just gave a much more practical explanation of the current AI safety problem....and laid out a practical framework for making frontier AI safer\n\nOpenAI and Anthropic are the two leading AI companies....and their models are close enough in capability that it\u2019s incredibly difficult for either one to slow down without basically handing the lead to the other\n\nElon also made an important distinction:\n\nOn balance, Anthropic puts more care into safety than OpenAI....but even people inside Anthropic are publicly worried about what their own models can do\n\nSo instead of asking one company to voluntarily fall behind, Elon\u2019s solution is much more practical:\n\nHave Anthropic run its safety test harness on OpenAI models\n\nHave OpenAI test Anthropic\nHave SpaceXAI test both\nAnd bring the leading Chinese AI companies into the same system\n\nEveryone tries to break everyone else\u2019s models before release\n\n\u201cThe odds that you will find issues are dramatically greater\u201d\n\nThat makes way more sense than asking frontier labs to grade their own homework",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
