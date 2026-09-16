@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2100055569512181920",
+  "author": "spectatorindex",
+  "url": "https://x.com/spectatorindex/status/2100055569512181920",
+  "text": "Cover of new edition of TIME magazine.",
+  "likes": 425,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "spectatorindex",
+      "text": "Cover of new edition of TIME magazine.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
