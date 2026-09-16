@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2100218575680053496",
+  "author": "charliebilello",
+  "url": "https://x.com/charliebilello/status/2100218575680053496",
+  "text": "Today, we hike.",
+  "likes": 360,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "charliebilello",
+      "text": "Today, we hike.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
