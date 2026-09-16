@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2100138442491306245",
+  "author": "ylecun",
+  "url": "https://x.com/ylecun/status/2100138442491306245",
+  "text": "Being better than humans at searching and writing down the formal proof of a theorem does not equate being \"beyond human level at math\".\n\nThis is not all of math, any more than arithmetics, or computing integrals (symbolically or numerically) is all of math. It's one \"mechanical\" task in the whole activity that happens to be automatable.\n\nMathematicians invent new concepts, new frameworks, new abstractions, new definitions, and formulate conjectures. \nThis requires intuition and creativity that current AI systems do not have (yet).",
+  "likes": 491,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "ylecun",
+      "text": "Being better than humans at searching and writing down the formal proof of a theorem does not equate being \"beyond human level at math\".\n\nThis is not all of math, any more than arithmetics, or computing integrals (symbolically or numerically) is all of math. It's one \"mechanical\" task in the whole activity that happens to be automatable.\n\nMathematicians invent new concepts, new frameworks, new abstractions, new definitions, and formulate conjectures. \nThis requires intuition and creativity that current AI systems do not have (yet).",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
