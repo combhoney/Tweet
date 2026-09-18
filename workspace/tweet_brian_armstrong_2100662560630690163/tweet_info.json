@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2100662560630690163",
+  "author": "brian_armstrong",
+  "url": "https://x.com/brian_armstrong/status/2100662560630690163",
+  "text": "If you haven't tried our self-custodial @CoinbaseWallet yet, download it and let us know what you think.\n\nWe're shipping major improvements weekly, led by @cobie.",
+  "likes": 890,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "brian_armstrong",
+      "text": "If you haven't tried our self-custodial @CoinbaseWallet yet, download it and let us know what you think.\n\nWe're shipping major improvements weekly, led by @cobie.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
