@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2100754948728508602",
+  "author": "ZeroHedge",
+  "url": "https://x.com/ZeroHedge/status/2100754948728508602",
+  "text": "This is crazy. In late July, \"three guys with Claude and Codex subscriptions\" were able to use Opus 5 to access OAI auth tokens and gain write access to OpenAI's monorepo openai/openai over the course of two days. \n\nhttps://www.wsj.com/tech/ai/hackers-used-anthropics-claude-to-break-into-openai-b40ba883",
+  "likes": 716,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "ZeroHedge",
+      "text": "This is crazy. In late July, \"three guys with Claude and Codex subscriptions\" were able to use Opus 5 to access OAI auth tokens and gain write access to OpenAI's monorepo openai/openai over the course of two days. \n\nhttps://www.wsj.com/tech/ai/hackers-used-anthropics-claude-to-break-into-openai-b40ba883",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
