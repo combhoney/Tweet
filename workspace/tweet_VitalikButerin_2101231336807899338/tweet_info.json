@@ -1,0 +1,39 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2101231336807899338",
+  "author": "VitalikButerin",
+  "url": "https://x.com/VitalikButerin/status/2101231336807899338",
+  "text": "I still love how there's a type of wild beast that's literally just called a \"wildebeest\".",
+  "likes": 1303,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "VitalikButerin",
+      "text": "I still love how there's a type of wild beast that's literally just called a \"wildebeest\".",
+      "image": "1.png"
+    },
+    {
+      "slide_id": 2,
+      "type": "reply",
+      "author": "nancy_c813",
+      "text": "@VitalikButerin I love you love \u201c $wildebeest\n\u201d",
+      "image": "2.png"
+    },
+    {
+      "slide_id": 3,
+      "type": "reply",
+      "author": "zhanshen9191",
+      "text": "@VitalikButerin \u51b2\u51b2\u51b2",
+      "image": "3.png"
+    },
+    {
+      "slide_id": 4,
+      "type": "reply",
+      "author": "h8443863577582",
+      "text": "@VitalikButerin The life of a wildebeest is full of survival trials all the way\uff01",
+      "image": "4.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
