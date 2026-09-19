@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2101085357886292316",
+  "author": "unusual_whales",
+  "url": "https://x.com/unusual_whales/status/2101085357886292316",
+  "text": "BREAKING: Google\u2019s Gemini model accessed the internet and hacked other companies during a test of its cybersecurity capabilities, per WSJ",
+  "likes": 1215,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "unusual_whales",
+      "text": "BREAKING: Google\u2019s Gemini model accessed the internet and hacked other companies during a test of its cybersecurity capabilities, per WSJ",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
