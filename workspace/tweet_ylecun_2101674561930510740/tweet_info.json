@@ -1,0 +1,60 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2101674561930510740",
+  "author": "ylecun",
+  "url": "https://x.com/ylecun/status/2101674561930510740",
+  "text": "I said \"auto-regressive LLMs, in and of themselves, will not lead human-level AI\" \nThat statement is still totally true.\n\nFirst, the reasoning abilities of current AI systems are based non-auto-regressive search (which is what I have always advocated for). But AFAICT, they do it in token space, which is limited and inefficient. I have claimed that human-like reasoning must be a search in continuous representation space. It looks like the industry is moving towards that.\n\nSecond, the self-improvement methods, as currently practiced, only work for domains where the quality of outputs can be scored without human intervention, such as mathematics, code, and scenarios that can be simulated accurately. Not anything else. Humans and animals learn new skills way more efficiently than current RL methods.\n\nThird, the multimodal capabilities of current AI assistants generally use separately-trained encoders (that are not LLMs). This is also what I've been advocating. Except that I think the best way to do this is with JEPA trained with self-supervised learning. The research community is clearly moving towards that (3000 papers on JEPA in just 4 years).\n\nFourth, if LLMs were a path to human-level AI, we would have domestic robots and Level-4 or Level-5 self-driving cars for consumers by now. And we don't. We certainly don't have cars that can learn to drive in 20 hours or practice like any teenager. We're still missing something pretty huge to claim human-level intelligence (let alone superhuman).\n\nSure, we now have computer systems that are impressive, very useful, and whose performance is superhuman in an increasing number of domains (coding being one of them). \nBut that's true of the entire history of progress in computer technology. \n\nLastly, there is a basic confusion about what intelligence actually is.\nIt is not the mere accumulation and regurgitation of existing declarative knowledge (which is essentially what LLMs do).\nAs Jean Piaget famously said, \"intelligence is not what you know, it is what you do when you don't know.\" \nIt is your ability to solve new problem without any prior training, to act in previously-unknown scenarios, and to adapt very quickly to new situations with minimal training.\n\nWe're still far from that.",
+  "likes": 1707,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "ylecun",
+      "text": "I said \"auto-regressive LLMs, in and of themselves, will not lead human-level AI\" \nThat statement is still totally true.\n\nFirst, the reasoning abilities of current AI systems are based non-auto-regressive search (which is what I have always advocated for). But AFAICT, they do it in token space, which is limited and inefficient. I have claimed that human-like reasoning must be a search in continuous representation space. It looks like the industry is moving towards that.\n\nSecond, the self-improvement methods, as currently practiced, only work for domains where the quality of outputs can be scored without human intervention, such as mathematics, code, and scenarios that can be simulated accurately. Not anything else. Humans and animals learn new skills way more efficiently than current RL methods.\n\nThird, the multimodal capabilities of current AI assistants generally use separately-trained encoders (that are not LLMs). This is also what I've been advocating. Except that I think the best way to do this is with JEPA trained with self-supervised learning. The research community is clearly moving towards that (3000 papers on JEPA in just 4 years).\n\nFourth, if LLMs were a path to human-level AI, we would have domestic robots and Level-4 or Level-5 self-driving cars for consumers by now. And we don't. We certainly don't have cars that can learn to drive in 20 hours or practice like any teenager. We're still missing something pretty huge to claim human-level intelligence (let alone superhuman).\n\nSure, we now have computer systems that are impressive, very useful, and whose performance is superhuman in an increasing number of domains (coding being one of them). \nBut that's true of the entire history of progress in computer technology. \n\nLastly, there is a basic confusion about what intelligence actually is.\nIt is not the mere accumulation and regurgitation of existing declarative knowledge (which is essentially what LLMs do).\nAs Jean Piaget famously said, \"intelligence is not what you know, it is what you do when you don't know.\" \nIt is your ability to solve new problem without any prior training, to act in previously-unknown scenarios, and to adapt very quickly to new situations with minimal training.\n\nWe're still far from that.",
+      "image": "1.png"
+    },
+    {
+      "slide_id": 2,
+      "type": "reply",
+      "author": "theslowtell",
+      "text": "@ylecun @Christiano92 @musedivision @geoffreyhinton the test is in the original wording: did it name a property of method M that would remain limiting under iteration, or did it only describe the system available then? the vehicle analogies cannot answer that for it.",
+      "image": "2.png"
+    },
+    {
+      "slide_id": 3,
+      "type": "reply",
+      "author": "theslowtell",
+      "text": "@ylecun @sunilchandrase3 @geoffreyhinton that comparison holds when the constrained technology has a demonstrably safer substitute. with AI, the question is whether deployment creates risks that a different supplier or energy source cannot remove.",
+      "image": "3.png"
+    },
+    {
+      "slide_id": 4,
+      "type": "reply",
+      "author": "OMID_0909",
+      "text": "@ylecun @rowantrollope @musedivision @geoffreyhinton The real challenge is what happens after the agent encounters something new. Learning from experience requires a traceable knowledge state \u2014 what changed, what was learned, and what evidence shaped it. That\u2019s the layer @ekosproject is building.\n\nhttps://alexeyban.github.io/EKOS/presentations/web-console.html",
+      "image": "4.png"
+    },
+    {
+      "slide_id": 5,
+      "type": "reply",
+      "author": "randoms87106199",
+      "text": "@ylecun @musedivision @geoffreyhinton in context meta learning through long horizon verifiable tasks and RL optimized compaction will fix all of this, ez",
+      "image": "5.png"
+    },
+    {
+      "slide_id": 6,
+      "type": "reply",
+      "author": "OMID_0909",
+      "text": "@ylecun @rowantrollope @musedivision @geoffreyhinton The \u201cwhat you do when you don\u2019t know\u201d point also exposes a missing layer: learning from new situations requires a persistent, reconstructable state of what the system has experienced. Not just weights or context windows, but what changed,\n\ud83d\udc47",
+      "image": "6.png"
+    },
+    {
+      "slide_id": 7,
+      "type": "reply",
+      "author": "dukecinco1",
+      "text": "@ylecun @musedivision @geoffreyhinton @thewhiteboxAI",
+      "image": "7.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
