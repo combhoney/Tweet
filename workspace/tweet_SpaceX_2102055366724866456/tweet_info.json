@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2102055366724866456",
+  "author": "SpaceX",
+  "url": "https://x.com/SpaceX/status/2102055366724866456",
+  "text": "Booster 21 moved to the pad at Starbase",
+  "likes": 7659,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "SpaceX",
+      "text": "Booster 21 moved to the pad at Starbase",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
