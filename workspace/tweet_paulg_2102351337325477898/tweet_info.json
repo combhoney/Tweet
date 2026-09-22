@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2102351337325477898",
+  "author": "paulg",
+  "url": "https://x.com/paulg/status/2102351337325477898",
+  "text": "In the last 2 years, web traffic to news sites has fallen by about 28%.",
+  "likes": 433,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "paulg",
+      "text": "In the last 2 years, web traffic to news sites has fallen by about 28%.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
