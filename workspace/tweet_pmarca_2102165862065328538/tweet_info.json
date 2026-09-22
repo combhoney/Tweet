@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2102165862065328538",
+  "author": "pmarca",
+  "url": "https://x.com/pmarca/status/2102165862065328538",
+  "text": "Meet Husky: a Model-Specific Inference (MSI) engine up to 4.5\u00d7 faster than Apple's MLX  \n\nWoof, Underdog's Pareto frontier model, now runs up to 730 tokens/sec on a MacBook  \n\nFinally local models are as fast & capable. Try it now in https://underdog.ai - your personal private AI",
+  "likes": 312,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "pmarca",
+      "text": "Meet Husky: a Model-Specific Inference (MSI) engine up to 4.5\u00d7 faster than Apple's MLX  \n\nWoof, Underdog's Pareto frontier model, now runs up to 730 tokens/sec on a MacBook  \n\nFinally local models are as fast & capable. Try it now in https://underdog.ai - your personal private AI",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}

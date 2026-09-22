@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2102166631439053014",
+  "author": "fchollet",
+  "url": "https://x.com/fchollet/status/2102166631439053014",
+  "text": "Delegate coding. Never delegate understanding.\n\nIf code was previously your source of truth for managing understanding, then you need a new source of truth artifact. If code-centric workflows were how you developed that understanding, then you need new workflows.",
+  "likes": 405,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "fchollet",
+      "text": "Delegate coding. Never delegate understanding.\n\nIf code was previously your source of truth for managing understanding, then you need a new source of truth artifact. If code-centric workflows were how you developed that understanding, then you need new workflows.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}

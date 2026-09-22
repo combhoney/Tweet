@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2102092784727679127",
+  "author": "elonmusk",
+  "url": "https://x.com/elonmusk/status/2102092784727679127",
+  "text": "and here\u2019s the grok 4.7 model card. a few jumps vs 4.6 that stood out:\n\n- Terminal-Bench: 20.3% \u2192 38.0%\n- SWE-Marathon: 31.9% \u2192 46.0%\n- HealthBench Pro: 48.5% \u2192 56.7%\n- Legal Agent: 15.8% \u2192 19.6%\n- EEBench: 60.0% \u2192 66.0%\n\nfor the same price as 4.6!\n\nhttps://media.x.ai/v1/website/4p7card-5eccc980.pdf",
+  "likes": 1344,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "elonmusk",
+      "text": "and here\u2019s the grok 4.7 model card. a few jumps vs 4.6 that stood out:\n\n- Terminal-Bench: 20.3% \u2192 38.0%\n- SWE-Marathon: 31.9% \u2192 46.0%\n- HealthBench Pro: 48.5% \u2192 56.7%\n- Legal Agent: 15.8% \u2192 19.6%\n- EEBench: 60.0% \u2192 66.0%\n\nfor the same price as 4.6!\n\nhttps://media.x.ai/v1/website/4p7card-5eccc980.pdf",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
