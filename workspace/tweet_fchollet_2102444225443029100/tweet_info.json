@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2102444225443029100",
+  "author": "fchollet",
+  "url": "https://x.com/fchollet/status/2102444225443029100",
+  "text": "The tweet below got enormous pushback at the time I posted it, more than 5 years ago. But this prediction is looking obvious by the day now.",
+  "likes": 614,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "fchollet",
+      "text": "The tweet below got enormous pushback at the time I posted it, more than 5 years ago. But this prediction is looking obvious by the day now.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
