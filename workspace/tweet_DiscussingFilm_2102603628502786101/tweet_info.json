@@ -1,0 +1,39 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2102603628502786101",
+  "author": "DiscussingFilm",
+  "url": "https://x.com/DiscussingFilm/status/2102603628502786101",
+  "text": "\u2018DIGGER\u2019 is getting an unofficial Fortnite collab.",
+  "likes": 7720,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "DiscussingFilm",
+      "text": "\u2018DIGGER\u2019 is getting an unofficial Fortnite collab.",
+      "image": "1.png"
+    },
+    {
+      "slide_id": 2,
+      "type": "reply",
+      "author": "musadelui",
+      "text": "@DiscussingFilm Ligit thought this was gonna be a real scene for PRIMETIME",
+      "image": "2.png"
+    },
+    {
+      "slide_id": 3,
+      "type": "reply",
+      "author": "eskays15",
+      "text": "@DiscussingFilm Great idea remind everyone and watch it happen again. Fucking morons.",
+      "image": "3.png"
+    },
+    {
+      "slide_id": 7,
+      "type": "reply",
+      "author": "WertzJonah",
+      "text": "@DiscussingFilm Welp, I guess its time for them to be a failing merger company.",
+      "image": "7.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
