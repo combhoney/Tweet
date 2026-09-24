@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2102852429150634494",
+  "author": "saylor",
+  "url": "https://x.com/saylor/status/2102852429150634494",
+  "text": "We brought X to https://Strategy.com.\n\nThe Media tab now features a live feed of the latest Strategy posts, alongside our latest Presentations, Keynotes, Interviews, and more.",
+  "likes": 613,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "saylor",
+      "text": "We brought X to https://Strategy.com.\n\nThe Media tab now features a live feed of the latest Strategy posts, alongside our latest Presentations, Keynotes, Interviews, and more.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
