@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2102922241008902356",
+  "author": "HillaryClinton",
+  "url": "https://x.com/HillaryClinton/status/2102922241008902356",
+  "text": "We're used to thinking of open-source models as an unadulterated good. But in the case of AI, they can actually pose additional dangers, as @ReidHoffman and I got into at #CGI2026. I appreciated this nuanced discussion.",
+  "likes": 537,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "HillaryClinton",
+      "text": "We're used to thinking of open-source models as an unadulterated good. But in the case of AI, they can actually pose additional dangers, as @ReidHoffman and I got into at #CGI2026. I appreciated this nuanced discussion.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
