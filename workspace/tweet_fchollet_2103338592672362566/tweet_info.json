@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2103338592672362566",
+  "author": "fchollet",
+  "url": "https://x.com/fchollet/status/2103338592672362566",
+  "text": "I think the \"difficulty\" of software engineering is essentially constant no matter what abstraction level you move to, because human cognition adapts to new tools until it can fully utilize itself.\n\nTools are only affordances, not a magic wand that makes work disappear.\n\nGreat software engineering was immensely challenging before. It is still immensely challenging now, despite very different workflows.",
+  "likes": 376,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "fchollet",
+      "text": "I think the \"difficulty\" of software engineering is essentially constant no matter what abstraction level you move to, because human cognition adapts to new tools until it can fully utilize itself.\n\nTools are only affordances, not a magic wand that makes work disappear.\n\nGreat software engineering was immensely challenging before. It is still immensely challenging now, despite very different workflows.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}

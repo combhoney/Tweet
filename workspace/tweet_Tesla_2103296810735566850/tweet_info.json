@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2103296810735566850",
+  "author": "Tesla",
+  "url": "https://x.com/Tesla/status/2103296810735566850",
+  "text": "See you next week",
+  "likes": 11563,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "Tesla",
+      "text": "See you next week",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
