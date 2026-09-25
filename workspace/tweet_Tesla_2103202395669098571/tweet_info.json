@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2103202395669098571",
+  "author": "Tesla",
+  "url": "https://x.com/Tesla/status/2103202395669098571",
+  "text": "Just a normal day for FSD Supervised",
+  "likes": 2323,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "Tesla",
+      "text": "Just a normal day for FSD Supervised",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
