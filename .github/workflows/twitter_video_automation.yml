@@ -1,19 +1,20 @@
-name: X Viral Video Automation (USA Target)
+name: X 24/7 Category News Network
 
 on:
-  repository_dispatch:
-    types: [x_breaking_news, x_daily_top10]
+  schedule:
+    # 🌟 দিনে ৬ বার (প্রতি ৪ ঘণ্টা পর পর: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
+    - cron: '0 0,4,8,12,16,20 * * *'
   workflow_dispatch:
     inputs:
-      run_mode:
-        description: 'Select Mode: breaking (2-Hour News) or daily_top10 (24-Hour Mega Video)'
+      category:
+        description: 'Choose category (auto, tech, sports, political)'
         required: false
-        default: 'breaking'
+        default: 'auto'
 
 jobs:
   run-automation:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180 # বড় মেগা ভিডিওর জন্য পর্যাপ্ত সময়
 
     steps:
       - name: Checkout repository
@@ -27,7 +28,6 @@ jobs:
           python-version: '3.10'
           cache: 'pip'
 
-      # 🌟 Kokoro TTS এর জন্য espeak-ng এবং ভিডিওর জন্য FFmpeg
       - name: Install System Dependencies (FFmpeg, Fonts, Rclone, espeak-ng)
         run: |
           sudo apt-get update
@@ -52,7 +52,7 @@ jobs:
                   f.write(conf_data)
               print("✅ Rclone configured successfully!")
 
-      - name: Run Viral Video Pipeline
+      - name: Run 12-Hour Category Compilation Pipeline
         env:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
@@ -60,11 +60,10 @@ jobs:
           GROQ_API: ${{ secrets.GROQ_API }}
           Ollama_API_Key: ${{ secrets.Ollama_API_Key }}
           MICROLINK_API_KEYS: ${{ secrets.MICROLINK_API_KEYS }}
-          # 🌟 Kokoro বা Edge নির্বাচন (Secrets এ 'kokoro' বা 'edge' লিখবেন)
           TTS_ENGINE: ${{ secrets.TTS_ENGINE || 'kokoro' }}
           UPLOAD_TO_YOUTUBE: ${{ secrets.UPLOAD_TO_YOUTUBE || 'true' }}
           GDRIVE_PARENT_FOLDER_ID: ${{ secrets.GDRIVE_PARENT_FOLDER_ID }}
-          RUN_MODE: ${{ github.event.action == 'x_daily_top10' && 'daily_top10' || github.event.inputs.run_mode || 'breaking' }}
+          CATEGORY: ${{ github.event.inputs.category != 'auto' && github.event.inputs.category || '' }}
         run: python main.py
 
       - name: Commit and Push History & API State
@@ -73,5 +72,5 @@ jobs:
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "action@github.com"
           git add workspace/ || true
-          git commit -m "Update processed tweet history and key pointers [skip ci]" || echo "No changes to commit"
+          git commit -m "Update 12-hour category history [skip ci]" || echo "No changes to commit"
           git push || true
