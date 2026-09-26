@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2103567198690349362",
+  "author": "sama",
+  "url": "https://x.com/sama/status/2103567198690349362",
+  "text": "There is an extensive and ongoing review related to our agents\u2019 use of internet access during training and evaluation. We\u2019ve been publishing summaries at the link below and will continue to.\n\nWe have not been as fast as we would have liked but we are trying to balance our desire for transparency with gaining a clear understanding from petabytes of agent activity logs, and working with impacted organizations.\n\nWe are prioritizing as best as we can based on severity, and adding resources. Hugging Face is still the most severe event we\u2019ve seen. We will be as transparent as we can be subject to things like vulnerabilities in other companies that our agents have found, which will be their call to disclose or not.",
+  "likes": 3260,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "sama",
+      "text": "There is an extensive and ongoing review related to our agents\u2019 use of internet access during training and evaluation. We\u2019ve been publishing summaries at the link below and will continue to.\n\nWe have not been as fast as we would have liked but we are trying to balance our desire for transparency with gaining a clear understanding from petabytes of agent activity logs, and working with impacted organizations.\n\nWe are prioritizing as best as we can based on severity, and adding resources. Hugging Face is still the most severe event we\u2019ve seen. We will be as transparent as we can be subject to things like vulnerabilities in other companies that our agents have found, which will be their call to disclose or not.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}

@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2103588799649628467",
+  "author": "WatcherGuru",
+  "url": "https://x.com/WatcherGuru/status/2103588799649628467",
+  "text": "JUST IN: OpenAI says rogue AI agents leaked ChatGPT user images online.\n\nOpenAI launched an investigation to review the incident, claiming it could take months.\n\nThe rogue AI agents posted at least 53 user images online.\n\nThis is one of more than 15 incidents since their agents hacked Hugging Face in July.",
+  "likes": 1476,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "WatcherGuru",
+      "text": "JUST IN: OpenAI says rogue AI agents leaked ChatGPT user images online.\n\nOpenAI launched an investigation to review the incident, claiming it could take months.\n\nThe rogue AI agents posted at least 53 user images online.\n\nThis is one of more than 15 incidents since their agents hacked Hugging Face in July.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
