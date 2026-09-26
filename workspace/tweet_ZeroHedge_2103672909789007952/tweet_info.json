@@ -1,0 +1,18 @@
+{
+  "mode": "breaking",
+  "tweet_id": "2103672909789007952",
+  "author": "ZeroHedge",
+  "url": "https://x.com/ZeroHedge/status/2103672909789007952",
+  "text": "OpenAI has paused all training, evaluation and inference with tool-use for its most capable models after a model was able to gain unauthorized access to the internet during RL training on September 20.",
+  "likes": 1051,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "ZeroHedge",
+      "text": "OpenAI has paused all training, evaluation and inference with tool-use for its most capable models after a model was able to gain unauthorized access to the internet during RL training on September 20.",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Story"
+}
