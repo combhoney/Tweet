@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import os, json, time, random, requests
-from config import WORKSPACE_DIR, HISTORY_FILE, VIP_HANDLES, RUN_MODE, SCAN_WINDOW_HOURS
+from config import WORKSPACE_DIR, HISTORY_FILE, CATEGORY_HANDLES, SCAN_WINDOW_HOURS, get_active_category
 from key_manager import get_circular_key_queue
 from ai_service import ai_gatekeeper_check
 
@@ -50,7 +50,7 @@ def fetch_live_tweets_fxtwitter(handle):
     except Exception: pass
     return []
 
-def fetch_direct_replies_for_tweet(author, tweet_id, max_needed=7):
+def fetch_direct_replies_for_tweet(author, tweet_id, max_needed=6):
     direct_replies = []
     search_url = f"https://api.fxtwitter.com/2/search?q=to:{author}&sort=top"
     try:
@@ -91,21 +91,23 @@ def capture_clean_screenshot(tweet_id, output_path):
         except Exception: continue
     return False
 
-def hunt_2hour_breaking_tweets():
+def hunt_category_tweets_for_compilation():
     init_workspace()
     history = get_processed_history()
+    active_cat = get_active_category()
+    handles = CATEGORY_HANDLES.get(active_cat, [])
+    random.shuffle(handles)
+
     now_ts = time.time()
-    time_window_sec = SCAN_WINDOW_HOURS * 3600
-    staged_folders = []
+    twelve_hours_sec = SCAN_WINDOW_HOURS * 3600
 
-    # 🌟 গুরুত্বপূর্ণ সমাধান: প্রতি রানে ১০০টি অ্যাকাউন্টকে র‍্যান্ডমাইজ করা হবে
-    # এতে শুধু ইলন মাস্কের ওপর নির্ভর না হয়ে অন্যান্য সেলিব্রিটি ও লিডারদের পোস্ট সুযোগ পাবে
-    shuffled_handles = VIP_HANDLES.copy()
-    random.shuffle(shuffled_handles)
+    print(f"\n=======================================================")
+    print(f"🎯 [CATEGORY RUN] Scanning 100 Handles for '{active_cat.upper()}' (Last {SCAN_WINDOW_HOURS}h)")
+    print(f"=======================================================\n")
 
-    print(f"\n🔍 [TWEET HUNTER] Scanning {len(shuffled_handles)} VIP accounts in dynamic randomized order (Last {SCAN_WINDOW_HOURS} hours)...")
+    staged_stories = []
 
-    for handle in shuffled_handles:
+    for handle in handles:
         tweets = fetch_live_tweets_fxtwitter(handle)
         if not tweets: continue
 
@@ -114,21 +116,22 @@ def hunt_2hour_breaking_tweets():
             tweet_text = tweet["text"]
             likes = tweet["likes"]
             tweet_url = tweet["url"]
-            folder_name = f"tweet_{handle}_{tid}"
+            folder_name = f"story_{active_cat}_{handle}_{tid}"
 
             if tid in history or folder_name in history or os.path.exists(os.path.join(WORKSPACE_DIR, folder_name)):
                 continue
 
             created_ts = tweet.get("created_timestamp")
             if created_ts and isinstance(created_ts, (int, float)):
-                if (now_ts - created_ts) > time_window_sec:
+                if (now_ts - created_ts) > twelve_hours_sec:
                     continue
 
-            is_worthy, reason, angle = ai_gatekeeper_check(handle, tweet_text, likes)
+            # 🌟 ক্যাটাগরি বিশুদ্ধতা যাচাই সহ AI Gatekeeper কল
+            is_worthy, reason, angle = ai_gatekeeper_check(handle, tweet_text, likes, active_category=active_cat)
             if not is_worthy:
                 continue
 
-            print(f"\n🔥 [APPROVED] @{handle} ({likes:,} Likes) ➔ \"{tweet_text[:60]}...\"")
+            print(f"\n🔥 [APPROVED: {active_cat.upper()}] @{handle} ({likes:,} Likes) ➔ \"{tweet_text[:60]}...\"")
             folder_path = os.path.join(WORKSPACE_DIR, folder_name)
             os.makedirs(folder_path, exist_ok=True)
             
@@ -138,8 +141,8 @@ def hunt_2hour_breaking_tweets():
                     {"slide_id": 1, "type": "main", "author": handle, "text": tweet_text, "image": "1.png"}
                 ]
 
-                print(f"  💬 Collecting community replies for @{handle}...")
-                replies = fetch_direct_replies_for_tweet(handle, tid, max_needed=6)
+                print(f"  💬 Collecting direct community replies for @{handle}...")
+                replies = fetch_direct_replies_for_tweet(handle, tid, max_needed=5)
                 
                 for idx, rep in enumerate(replies, start=2):
                     rep_img_path = os.path.join(folder_path, f"{idx}.png")
@@ -154,7 +157,7 @@ def hunt_2hour_breaking_tweets():
 
                 with open(os.path.join(folder_path, "tweet_info.json"), "w", encoding="utf-8") as jf:
                     json.dump({
-                        "mode": "breaking",
+                        "category": active_cat,
                         "tweet_id": tid,
                         "author": handle,
                         "url": tweet_url,
@@ -164,18 +167,9 @@ def hunt_2hour_breaking_tweets():
                         "editorial_angle": angle
                     }, jf, indent=2)
 
-                staged_folders.append(folder_name)
-                print(f"  ✅ Staged {len(slides_data)}-Slide Synced Video for @{handle}!")
-                break # প্রতি অ্যাকাউন্ট থেকে ১টি করে ব্রেকিং ভিডিও নেবে যাতে একজন মনোপলি না করে
+                staged_stories.append(folder_name)
+                print(f"  ✅ Staged {active_cat.upper()} Story #{len(staged_stories)}: {folder_name}")
+                break
 
-    print(f"\n🎯 Total {len(staged_folders)} diverse breaking video(s) staged.\n")
-    return staged_folders
-
-def hunt_daily_top10_viral_tweets():
-    return hunt_2hour_breaking_tweets()
-
-def hunt_and_prepare_viral_tweets():
-    if RUN_MODE == "daily_top10":
-        return hunt_daily_top10_viral_tweets()
-    else:
-        return hunt_2hour_breaking_tweets()
+    print(f"\n🎯 Total {len(staged_stories)} pure {active_cat.upper()} story segment(s) staged.\n")
+    return staged_stories
