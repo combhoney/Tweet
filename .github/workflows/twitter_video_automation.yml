@@ -1,20 +1,26 @@
-name: X 24/7 Category News Network
+name: X 24/7 Category News Network (28 Daily Mega Runs)
 
 on:
   schedule:
-    # 🌟 দিনে ৬ বার (প্রতি ৪ ঘণ্টা পর পর: 00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC)
-    - cron: '0 0,4,8,12,16,20 * * *'
+    # দিনে ২৮টি স্লট (প্রতি ঘণ্টার শুরুতে এবং ৪টি প্রধান পিক টাইমে)
+    - cron: '0 * * * *'
+    - cron: '30 0,12,16,20 * * *'
   workflow_dispatch:
     inputs:
       category:
-        description: 'Choose category (auto, tech, sports, political)'
+        description: 'Choose category (auto, tech, political, nba, nfl, soccer, golf, mlb, tennis, ncaaf, nhl, fantasy_sports, combat_sports, f1, space)'
         required: false
         default: 'auto'
+
+# 🌟 ম্যাজিক লক: আগের রান শেষ না হওয়া পর্যন্ত পরবর্তী রান লাইনে অপেক্ষা করবে (কোনো কনফ্লিক্ট বা ডুপ্লিকেট হবে না)
+concurrency:
+  group: x-video-pipeline-lock
+  cancel-in-progress: false
 
 jobs:
   run-automation:
     runs-on: ubuntu-latest
-    timeout-minutes: 180 # বড় মেগা ভিডিওর জন্য পর্যাপ্ত সময়
+    timeout-minutes: 180
 
     steps:
       - name: Checkout repository
@@ -66,11 +72,13 @@ jobs:
           CATEGORY: ${{ github.event.inputs.category != 'auto' && github.event.inputs.category || '' }}
         run: python main.py
 
+      # 🌟 সুরক্ষিত গিট সিঙ্ক: পুশ করার আগে রিব্যাস করে নেবে যাতে কোনো পুশ কনফ্লিক্ট না হয়
       - name: Commit and Push History & API State
         if: always()
         run: |
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "action@github.com"
           git add workspace/ || true
-          git commit -m "Update 12-hour category history [skip ci]" || echo "No changes to commit"
-          git push || true
+          git commit -m "Update category history [skip ci]" || echo "No changes to commit"
+          git pull --rebase origin main || true
+          git push origin main || true
