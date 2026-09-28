@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
-import os, re
-from datetime import datetime, timezone
+import os, json, re
 
 WORKSPACE_DIR = "workspace"
 TMP_DIR = "temp_assets"
 HISTORY_FILE = os.path.join(WORKSPACE_DIR, "history.txt")
+CATEGORY_STATE_FILE = os.path.join(WORKSPACE_DIR, "category_state.json")
 
 # গত ১২ ঘণ্টার পোস্ট ও কমেন্ট স্ক্যান হবে
 SCAN_WINDOW_HOURS = 12
@@ -13,9 +13,30 @@ TTS_ENGINE = os.environ.get("TTS_ENGINE", "kokoro").strip().lower()
 UPLOAD_TO_YOUTUBE = os.environ.get("UPLOAD_TO_YOUTUBE", "true").strip().lower() in ("true", "1", "yes")
 GDRIVE_PARENT_FOLDER_ID = os.environ.get("GDRIVE_PARENT_FOLDER_ID", "").strip()
 
+# 🌟 ১৪টি ক্যাটাগরির সুনির্দিষ্ট ক্রম (ধারাবাহিকভাবে একটার পর একটা ঘুরবে)
+ORDERED_CATEGORIES = [
+    "space",
+    "tech",
+    "political",
+    "nba",
+    "nfl",
+    "soccer",
+    "combat_sports",
+    "f1",
+    "mlb",
+    "nhl",
+    "tennis",
+    "golf",
+    "ncaaf",
+    "fantasy_sports"
+]
+
 # ==================== [ ১৪টি ক্যাটাগরির হ্যান্ডেল তালিকা ] ====================
 CATEGORY_HANDLES = {
-    # ১. Tech & AI
+    "space": [
+        "SpaceX", "NASA", "elonmusk", "NASASpaceflight", "SpaceflightNow", "ISS_Research",
+        "ESA", "NASAWebb", "SciGuySpace", "Erdayastronaut", "ArceneauxHayley"
+    ],
     "tech": [
         "elonmusk", "sama", "ylecun", "paulg", "pmarca", "lexfridman", "satyanadella",
         "sundarpichai", "tim_cook", "BillGates", "karpathy", "gdb", "ID_AA_Carmack",
@@ -23,8 +44,6 @@ CATEGORY_HANDLES = {
         "drfeifei", "tegmark", "OpenAI", "AnthropicAI", "Tesla", "SpaceX", "MKBHD",
         "jeffbezos", "bchesky", "jack", "levie", "tobi", "balajis", "garrytan", "cdixon"
     ],
-
-    # ২. Political
     "political": [
         "realDonaldTrump", "JDVance", "VivekGRamaswamy", "BarackObama", "JoeBiden",
         "KamalaHarris", "AOC", "BernieSanders", "TuckerCarlson", "RobertKennedyJr",
@@ -32,127 +51,92 @@ CATEGORY_HANDLES = {
         "HillaryClinton", "TulsiGabbard", "IlhanMN", "marcorubio", "SenWarren",
         "CollinRugg", "EndWokeness", "MarioNawfal", "benshapiro", "charliekirk11"
     ],
-
-    # ৩. NBA (Basketball)
     "nba": [
         "NBA", "ShamsCharania", "wojespn", "BleacherReport", "SportsCenter", "KingJames",
         "StephenCurry30", "KDTrey5", "Giannis_An34", "JoelEmbiid", "Dame_Lillard",
         "Luka77Doncic", "spidadmitchell", "MagicJohnson", "SHAQ", "ClutchPoints",
         "HouseHighlights", "Overtime", "TheDunkCentral", "TheSteinLine"
     ],
-
-    # ৪. NFL (American Football)
     "nfl": [
         "NFL", "AdamSchefter", "RapSheet", "PatrickMahomes", "TomBrady", "tkelce",
         "bakermayfield", "AaronRodgers12", "JalenHurts", "obj", "JJWatt", "DeionSanders",
         "BleacherReportNFL", "NFLonCBS", "NFLSTROUD", "AroundTheNFL", "MySportsUpdate"
     ],
-
-    # ৫. World Cup (Soccer / Football)
     "soccer": [
         "FabrizioRomano", "David_Ornstein", "brfootball", "ChampionsLeague", "premierleague",
         "Cristiano", "neymarjr", "KMbappe", "ErlingHaaland", "lewy_official", "vinijr",
         "BellinghamJude", "ToniKroos", "MoSalah", "SkySportsNews", "goal", "Transfermarkt"
     ],
-
-    # ৬. Golf
+    "combat_sports": [
+        "ufc", "danawhite", "ArielHelwani", "TheNotoriousMMA", "espnmma", "MMAFighting",
+        "Canelo", "Tyson_Fury", "anthonyjoshua", "JonnyBones", "stylebender", "ChaelSonnen"
+    ],
+    "f1": [
+        "F1", "LewisHamilton", "Max33Verstappen", "LandoNorris", "Charles_Leclerc",
+        "SkySportsF1", "WTF1official", "RedBullRacing", "ScuderiaFerrari", "MercedesAMGF1"
+    ],
+    "mlb": [
+        "MLB", "JeffPassan", "Ken_Rosenthal", "BRWalkoff", "TalkinBaseball_", "MikeTrout",
+        "Starting9", "JonHeyman", "Feinsand", "PitchingNinja", "FoulTerritoryTV"
+    ],
+    "nhl": [
+        "NHL", "PierreVLeBrun", "ElliotteFriedman", "SpittinChiclets", "Bardown",
+        "PuckReportNHL", "FriedgeHNIC", "frank_seravalli", "BR_OpenIce"
+    ],
+    "tennis": [
+        "atptour", "WTA", "Tennis", "JoseMorgado", "RafaelNadal", "CocoGauff",
+        "BenRothenberg", "carlosalcaraz", "iga_swiatek", "DjokerNole", "TennisChannel"
+    ],
     "golf": [
         "PGATOUR", "LIVGolf_League", "TigerWoods", "RoryMcIlroy", "PhilMickelson",
         "BrysonDeChambeau", "GolfDigest", "ForePlayPod", "NoLayingUp", "GolfChannel",
         "JustinThomas34", "BKoepka", "JonRahmOfficial"
     ],
-
-    # ৭. MLB (Baseball)
-    "mlb": [
-        "MLB", "JeffPassan", "Ken_Rosenthal", "BRWalkoff", "TalkinBaseball_", "MikeTrout",
-        "Starting9", "JonHeyman", "Feinsand", "PitchingNinja", "FoulTerritoryTV"
-    ],
-
-    # ৮. Tennis
-    "tennis": [
-        "atptour", "WTA", "Tennis", "JoseMorgado", "RafaelNadal", "CocoGauff",
-        "BenRothenberg", "carlosalcaraz", "iga_swiatek", "DjokerNole", "TennisChannel"
-    ],
-
-    # ৯. NCAAF (College Football)
     "ncaaf": [
         "CFB", "espncfb", "On3sports", "247Sports", "KirkHerbstreit", "CollegeGameDay",
         "BruceFeldmanCFB", "RJ_Young", "UnnecRoughness", "PFF_College"
     ],
-
-    # ১০. NHL (Ice Hockey)
-    "nhl": [
-        "NHL", "PierreVLeBrun", "ElliotteFriedman", "SpittinChiclets", "Bardown",
-        "PuckReportNHL", "FriedgeHNIC", "frank_seravalli", "BR_OpenIce"
-    ],
-
-    # ১১. Fantasy Sports & Betting
     "fantasy_sports": [
         "FantasyPros", "MatthewBerryTMR", "rotowire", "PFF_Fantasy", "UnderdogFantasy",
         "SleeperHQ", "ActionNetworkHQ", "BradEvansMix", "LateRoundQB", "EstablishTheRun"
-    ],
-
-    # ১২. UFC / MMA / Boxing
-    "combat_sports": [
-        "ufc", "danawhite", "ArielHelwani", "TheNotoriousMMA", "espnmma", "MMAFighting",
-        "Canelo", "Tyson_Fury", "anthonyjoshua", "JonnyBones", "stylebender", "ChaelSonnen"
-    ],
-
-    # ১৩. Formula 1 (F1)
-    "f1": [
-        "F1", "LewisHamilton", "Max33Verstappen", "LandoNorris", "Charles_Leclerc",
-        "SkySportsF1", "WTF1official", "RedBullRacing", "ScuderiaFerrari", "MercedesAMGF1"
-    ],
-
-    # ১৪. SpaceX, NASA & Space
-    "space": [
-        "SpaceX", "NASA", "elonmusk", "NASASpaceflight", "SpaceflightNow", "ISS_Research",
-        "ESA", "NASAWebb", "SciGuySpace", "Erdayastronaut", "ArceneauxHayley"
     ]
 }
 
-# ==================== [ ২৮টি স্লট অটো-ম্যাপিং ইঞ্জিন ] ====================
+# ==================== [ 🔄 স্মার্ট ক্যাটাগরি রোটেশন ফাংশন ] ====================
 def get_active_category():
+    """
+    ম্যানুয়াল ওভাররাইড না থাকলে প্রতিবার স্বয়ংক্রিয়ভাবে পরবর্তী ক্যাটাগরি বেছে নেয়
+    এবং নতুন ইনডেক্স মেমোরিতে সেভ করে রাখে
+    """
     forced_cat = os.environ.get("CATEGORY", "").strip().lower()
     if forced_cat in CATEGORY_HANDLES:
         return forced_cat
 
-    now_utc = datetime.now(timezone.utc)
-    hour = now_utc.hour
-    minute = now_utc.minute
+    last_index = -1
+    if os.path.exists(CATEGORY_STATE_FILE):
+        try:
+            with open(CATEGORY_STATE_FILE, "r", encoding="utf-8") as f:
+                state_data = json.load(f)
+                last_index = state_data.get("last_category_index", -1)
+        except Exception: pass
 
-    # ২৮টি স্লটের নির্দিষ্ট সময়সূচি
-    if hour == 0 and minute >= 25: return "tech"
-    if hour == 0: return "space"
-    if hour == 1: return "golf"
-    if hour == 2: return "ncaaf"
-    if hour == 3: return "nfl"
-    if hour == 4: return "nba"
-    if hour == 5: return "mlb"
-    if hour == 6: return "nhl"
-    if hour == 7: return "combat_sports"
-    if hour == 8: return "f1"
-    if hour == 9: return "tennis"
-    if hour == 10: return "soccer"
-    if hour == 11: return "political"
-    if hour == 12 and minute >= 25: return "tech"
-    if hour == 12: return "space"
-    if hour == 13: return "fantasy_sports"
-    if hour == 14: return "f1"
-    if hour == 15: return "soccer"
-    if hour == 16 and minute >= 25: return "tennis"
-    if hour == 16: return "nba"
-    if hour == 17: return "mlb"
-    if hour == 18 and minute >= 25: return "ncaaf"
-    if hour == 18: return "nfl"
-    if hour == 19: return "nhl"
-    if hour == 20 and minute >= 25: return "political"
-    if hour == 20: return "golf"
-    if hour == 21: return "fantasy_sports"
-    if hour == 22: return "combat_sports"
-    if hour == 23: return "tech"
+    # পরবর্তী ক্যাটাগরি সিলেক্ট করা (রোটেশনাল ইনডেক্স)
+    current_index = (last_index + 1) % len(ORDERED_CATEGORIES)
+    active_category = ORDERED_CATEGORIES[current_index]
 
-    return "tech"
+    # নতুন ইনডেক্স সেভ করা
+    try:
+        os.makedirs(WORKSPACE_DIR, exist_ok=True)
+        with open(CATEGORY_STATE_FILE, "w", encoding="utf-8") as f:
+            json.dump({
+                "last_category_index": current_index,
+                "active_category": active_category
+            }, f, indent=2)
+    except Exception as e:
+        print(f"⚠️ Failed to save category rotation state: {e}")
+
+    print(f"\n🔄 [CATEGORY ROTATION] Selected Category #{current_index + 1}/{len(ORDERED_CATEGORIES)}: '{active_category.upper()}'")
+    return active_category
 
 DEFAULT_BASE_TAGS = ['Breaking News', 'Twitter Viral', 'X Trending', 'US News']
 
