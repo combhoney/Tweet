@@ -1,18 +1,16 @@
-name: X 24/7 Category News Network (28 Daily Mega Runs)
+name: X 24/7 Category News Network
 
 on:
-  schedule:
-    # দিনে ২৮টি স্লট (প্রতি ঘণ্টার শুরুতে এবং ৪টি প্রধান পিক টাইমে)
-    - cron: '0 * * * *'
-    - cron: '30 0,12,16,20 * * *'
+  repository_dispatch:
+    types: [x_video_run] # cron-job.org থেকে ট্রিগার গ্রহণ করবে
   workflow_dispatch:
     inputs:
       category:
-        description: 'Choose category (auto, tech, political, nba, nfl, soccer, golf, mlb, tennis, ncaaf, nhl, fantasy_sports, combat_sports, f1, space)'
+        description: 'Choose category (auto_rotate, tech, political, nba, nfl, soccer, golf, mlb, tennis, ncaaf, nhl, fantasy_sports, combat_sports, f1, space)'
         required: false
-        default: 'auto'
+        default: 'auto_rotate'
 
-# 🌟 ম্যাজিক লক: আগের রান শেষ না হওয়া পর্যন্ত পরবর্তী রান লাইনে অপেক্ষা করবে (কোনো কনফ্লিক্ট বা ডুপ্লিকেট হবে না)
+# ম্যাজিক লক: আগের রান শেষ না হওয়া পর্যন্ত পরবর্তী রান নিরাপদে লাইনে অপেক্ষা করবে
 concurrency:
   group: x-video-pipeline-lock
   cancel-in-progress: false
@@ -69,16 +67,16 @@ jobs:
           TTS_ENGINE: ${{ secrets.TTS_ENGINE || 'kokoro' }}
           UPLOAD_TO_YOUTUBE: ${{ secrets.UPLOAD_TO_YOUTUBE || 'true' }}
           GDRIVE_PARENT_FOLDER_ID: ${{ secrets.GDRIVE_PARENT_FOLDER_ID }}
-          CATEGORY: ${{ github.event.inputs.category != 'auto' && github.event.inputs.category || '' }}
+          CATEGORY: ${{ github.event.inputs.category != 'auto_rotate' && github.event.inputs.category || '' }}
         run: python main.py
 
-      # 🌟 সুরক্ষিত গিট সিঙ্ক: পুশ করার আগে রিব্যাস করে নেবে যাতে কোনো পুশ কনফ্লিক্ট না হয়
-      - name: Commit and Push History & API State
+      # 🌟 ক্যাটাগরি রোটেশন স্টেট ও হিস্ট্রি গিটহাবে পার্মানেন্ট পুশ হবে
+      - name: Commit and Push History & Category State
         if: always()
         run: |
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "action@github.com"
           git add workspace/ || true
-          git commit -m "Update category history [skip ci]" || echo "No changes to commit"
+          git commit -m "Update category rotation state and history [skip ci]" || echo "No changes to commit"
           git pull --rebase origin main || true
           git push origin main || true
