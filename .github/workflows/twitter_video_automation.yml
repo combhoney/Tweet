@@ -2,7 +2,8 @@ name: X 24/7 Category News Network
 
 on:
   repository_dispatch:
-    types: [x_video_run] # cron-job.org থেকে ট্রিগার গ্রহণ করবে
+    # 🌟 যে নামই আসুক না কেন সাথে সাথে রান হবে
+    types: [x_video_run, x_viral_video_run, x_breaking_news, x_daily_top10]
   workflow_dispatch:
     inputs:
       category:
@@ -10,7 +11,6 @@ on:
         required: false
         default: 'auto_rotate'
 
-# ম্যাজিক লক: আগের রান শেষ না হওয়া পর্যন্ত পরবর্তী রান নিরাপদে লাইনে অপেক্ষা করবে
 concurrency:
   group: x-video-pipeline-lock
   cancel-in-progress: false
@@ -70,7 +70,6 @@ jobs:
           CATEGORY: ${{ github.event.inputs.category != 'auto_rotate' && github.event.inputs.category || '' }}
         run: python main.py
 
-      # 🌟 ক্যাটাগরি রোটেশন স্টেট ও হিস্ট্রি গিটহাবে পার্মানেন্ট পুশ হবে
       - name: Commit and Push History & Category State
         if: always()
         run: |
