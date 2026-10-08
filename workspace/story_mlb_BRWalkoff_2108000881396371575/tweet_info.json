@@ -1,0 +1,53 @@
+{
+  "category": "mlb",
+  "tweet_id": "2108000881396371575",
+  "author": "BRWalkoff",
+  "url": "https://x.com/BRWalkoff/status/2108000881396371575",
+  "text": "The Atlanta Braves have been eliminated from the postseason.",
+  "likes": 363,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "BRWalkoff",
+      "text": "The Atlanta Braves have been eliminated from the postseason.",
+      "image": "1.png"
+    },
+    {
+      "slide_id": 2,
+      "type": "reply",
+      "author": "stayhugh6",
+      "text": "@BRWalkoff They're 3-peating if they don't get stopped",
+      "image": "2.png"
+    },
+    {
+      "slide_id": 3,
+      "type": "reply",
+      "author": "NYM556",
+      "text": "@BRWalkoff Makes sense why they miss him so much \ud83e\udd23\ud83d\udc10",
+      "image": "3.png"
+    },
+    {
+      "slide_id": 4,
+      "type": "reply",
+      "author": "willlovesmovies",
+      "text": "@BRWalkoff @Braves join the fun",
+      "image": "4.png"
+    },
+    {
+      "slide_id": 5,
+      "type": "reply",
+      "author": "LADodgerRamFan",
+      "text": "@BRWalkoff I LOVE LA...turn it UP\nhttps://youtu.be/-OVxF9aAJq8?si=hJ57FMCrwaMh0e4P",
+      "image": "5.png"
+    },
+    {
+      "slide_id": 6,
+      "type": "reply",
+      "author": "ONODOSETRACE",
+      "text": "@BRWalkoff ELIMINATED!",
+      "image": "6.png"
+    }
+  ],
+  "editorial_angle": "Breaking Mlb Story"
+}
