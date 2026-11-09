@@ -50,7 +50,7 @@ def fetch_live_tweets_fxtwitter(handle):
     except Exception: pass
     return []
 
-def fetch_direct_replies_for_tweet(author, tweet_id, max_needed=6):
+def fetch_direct_replies_for_tweet(author, tweet_id, max_needed=4):
     direct_replies = []
     search_url = f"https://api.fxtwitter.com/2/search?q=to:{author}&sort=top"
     try:
@@ -91,7 +91,10 @@ def capture_clean_screenshot(tweet_id, output_path):
         except Exception: continue
     return False
 
-def hunt_category_tweets_for_compilation():
+def hunt_category_shorts_story():
+    """
+    এক্টিভ ক্যাটাগরির জন্য শীর্ষ ভাইরাল টুইট এবং তার ৩-৪টি হট রিপ্লাই খুঁজে শর্টস হিসেবে স্টেজ করে
+    """
     init_workspace()
     history = get_processed_history()
     active_cat = get_active_category()
@@ -101,11 +104,7 @@ def hunt_category_tweets_for_compilation():
     now_ts = time.time()
     twelve_hours_sec = SCAN_WINDOW_HOURS * 3600
 
-    print(f"\n=======================================================")
-    print(f"🎯 [CATEGORY RUN] Scanning 100 Handles for '{active_cat.upper()}' (Last {SCAN_WINDOW_HOURS}h)")
-    print(f"=======================================================\n")
-
-    staged_stories = []
+    print(f"\n🎯 [SHORTS HUNTER ACTIVE] Finding Pure '{active_cat.upper()}' Viral Story...")
 
     for handle in handles:
         tweets = fetch_live_tweets_fxtwitter(handle)
@@ -116,7 +115,7 @@ def hunt_category_tweets_for_compilation():
             tweet_text = tweet["text"]
             likes = tweet["likes"]
             tweet_url = tweet["url"]
-            folder_name = f"story_{active_cat}_{handle}_{tid}"
+            folder_name = f"shorts_{active_cat}_{handle}_{tid}"
 
             if tid in history or folder_name in history or os.path.exists(os.path.join(WORKSPACE_DIR, folder_name)):
                 continue
@@ -126,12 +125,11 @@ def hunt_category_tweets_for_compilation():
                 if (now_ts - created_ts) > twelve_hours_sec:
                     continue
 
-            # 🌟 ক্যাটাগরি বিশুদ্ধতা যাচাই সহ AI Gatekeeper কল
+            # ক্যাটাগরি বিশুদ্ধতা যাচাই
             is_worthy, reason, angle = ai_gatekeeper_check(handle, tweet_text, likes, active_category=active_cat)
-            if not is_worthy:
-                continue
+            if not is_worthy: continue
 
-            print(f"\n🔥 [APPROVED: {active_cat.upper()}] @{handle} ({likes:,} Likes) ➔ \"{tweet_text[:60]}...\"")
+            print(f"🔥 [APPROVED: {active_cat.upper()}] @{handle} ({likes:,} Likes) ➔ \"{tweet_text[:60]}...\"")
             folder_path = os.path.join(WORKSPACE_DIR, folder_name)
             os.makedirs(folder_path, exist_ok=True)
             
@@ -141,18 +139,13 @@ def hunt_category_tweets_for_compilation():
                     {"slide_id": 1, "type": "main", "author": handle, "text": tweet_text, "image": "1.png"}
                 ]
 
-                print(f"  💬 Collecting direct community replies for @{handle}...")
-                replies = fetch_direct_replies_for_tweet(handle, tid, max_needed=5)
-                
+                # শর্টসের জন্য সেরা ৩টি ডিরেক্ট কমেন্ট
+                replies = fetch_direct_replies_for_tweet(handle, tid, max_needed=3)
                 for idx, rep in enumerate(replies, start=2):
                     rep_img_path = os.path.join(folder_path, f"{idx}.png")
                     if capture_clean_screenshot(rep["id"], rep_img_path):
                         slides_data.append({
-                            "slide_id": idx,
-                            "type": "reply",
-                            "author": rep["author"],
-                            "text": rep["text"],
-                            "image": f"{idx}.png"
+                            "slide_id": idx, "type": "reply", "author": rep["author"], "text": rep["text"], "image": f"{idx}.png"
                         })
 
                 with open(os.path.join(folder_path, "tweet_info.json"), "w", encoding="utf-8") as jf:
@@ -167,9 +160,7 @@ def hunt_category_tweets_for_compilation():
                         "editorial_angle": angle
                     }, jf, indent=2)
 
-                staged_stories.append(folder_name)
-                print(f"  ✅ Staged {active_cat.upper()} Story #{len(staged_stories)}: {folder_name}")
-                break
+                print(f"✅ Staged Pure {active_cat.upper()} Shorts Story with {len(slides_data)} Slides!")
+                return folder_name
 
-    print(f"\n🎯 Total {len(staged_stories)} pure {active_cat.upper()} story segment(s) staged.\n")
-    return staged_stories
+    return None
