@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image, ImageFilter, ImageDraw, ImageFont
 from moviepy.editor import AudioFileClip, VideoClip, concatenate_videoclips
 
-def get_subtitle_font(font_size=46):
+def get_subtitle_font(font_size=42):
     font_paths = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
@@ -35,7 +35,7 @@ def prepare_subtitle_cues(script_text, total_duration):
     words = script_text.strip().split()
     if not words or total_duration <= 0: return []
     cues = []
-    chunk_size = 5
+    chunk_size = 4  # শর্টসে দ্রুত ৩-৪ শব্দের পিল আসবে
     chunks = [" ".join(words[i:i+chunk_size]) for i in range(0, len(words), chunk_size)]
     total_words = len(words)
     current_time = 0.0
@@ -47,15 +47,16 @@ def prepare_subtitle_cues(script_text, total_duration):
         current_time += dur
     return cues
 
-def draw_subtitle(canvas, current_text, font, target_w, target_h):
+def draw_shorts_subtitle(canvas, current_text, font, target_w=1080, target_h=1920):
+    """শর্টসের নিরাপদ জোনে (Y: 1360) কালো বক্সে হলুদ সাবটাইটেল আঁকে"""
     if not current_text: return
     draw = ImageDraw.Draw(canvas)
     bbox = font.getbbox(current_text)
     tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
 
-    pad_x, pad_y = 26, 12
-    box_w, box_h = tw + pad_x * 2, th + pad_y * 2
-    box_center_y = 980
+    pad_x, pad_y = 22, 10
+    box_w, box_h = min(tw + pad_x * 2, target_w - 80), th + pad_y * 2
+    box_center_y = 1380  # শর্টসের ইউআই-এর ঠিক ওপরে সেফ পজিশন
 
     box_x1 = (target_w - box_w) // 2
     box_y1 = box_center_y - (box_h // 2)
@@ -65,24 +66,29 @@ def draw_subtitle(canvas, current_text, font, target_w, target_h):
     draw.rounded_rectangle([box_x1, box_y1, box_x2, box_y2], radius=14, fill="#080c10", outline="#000000", width=2)
     draw.text((target_w // 2, box_center_y), current_text, font=font, fill="#FFE600", anchor="mm")
 
-def make_sliding_tweet_frame(img_path, duration, script_text="", target_w=1920, target_h=1080, direction="right_to_left"):
+def make_shorts_sliding_frame(img_path, duration, script_text="", target_w=1080, target_h=1920, direction="right_to_left"):
     raw_img = Image.open(img_path)
     cropped_card = crop_tweet_card_strict(raw_img)
 
-    bg_img = cropped_card.resize((target_w, target_h), Image.LANCZOS).filter(ImageFilter.GaussianBlur(radius=35))
+    # ১. ব্যাকগ্রাউন্ড: ৯:১৬ ক্যানভাস জুড়ে প্রিমিয়াম ভার্টিক্যাল ব্লার
+    bg_img = cropped_card.resize((target_w, target_h), Image.LANCZOS).filter(ImageFilter.GaussianBlur(radius=40))
     dark_overlay = Image.new("RGB", (target_w, target_h), "#06090e")
-    bg_img = Image.blend(bg_img, dark_overlay, alpha=0.40)
+    bg_img = Image.blend(bg_img, dark_overlay, alpha=0.45)
 
-    max_card_h = int(target_h * 0.74)
-    scale = min((target_w * 0.76) / cropped_card.width, max_card_h / cropped_card.height)
-    base_w, base_h = int(cropped_card.width * scale), int(cropped_card.height * scale)
+    # ২. ফোরগ্রাউন্ড: টুইট কার্ড স্কেল করা (শর্টসে প্রস্থের ৯২% জায়গা নেবে)
+    max_w = int(target_w * 0.92)  # প্রায় ৯৯০ পিক্সেল
+    max_h = 950                   # কার্ডের উচ্চতা
+    scale = min(max_w / cropped_card.width, max_h / cropped_card.height)
+    base_w = int(cropped_card.width * scale)
+    base_h = int(cropped_card.height * scale)
     fg_card = cropped_card.resize((base_w, base_h), Image.LANCZOS)
-    
+
     raw_img.close()
     cropped_card.close()
 
-    card_y = 45 + ((860 - base_h) // 2)
-    travel_distance = 320
+    # কার্ডের অবস্থান (Y: মাঝামাঝি অংশ, Y: 400 থেকে 1300-এর মধ্যে)
+    card_y = 420 + ((880 - base_h) // 2)
+    travel_distance = 60 # শর্টসে স্ক্রিন সরু হওয়ায় ৬০ পিক্সেল পারফেক্ট ও এলিগ্যান্ট
 
     sub_font = get_subtitle_font(44)
     subtitle_cues = prepare_subtitle_cues(script_text, duration)
@@ -107,36 +113,30 @@ def make_sliding_tweet_frame(img_path, duration, script_text="", target_w=1920, 
                 break
 
         if active_text:
-            draw_subtitle(canvas, active_text, sub_font, target_w, target_h)
+            draw_shorts_subtitle(canvas, active_text, sub_font, target_w, target_h)
 
         return np.array(canvas)
 
     return VideoClip(frame_getter, duration=duration)
 
-def render_story_segment_clip(paired_slides):
-    """একটি নির্দিষ্ট টুইট ও তার কমেন্টগুলোর জন্য একটি স্বাধীন ক্লিপ রিটার্ন করে"""
-    target_w, target_h = 1920, 1080
+def render_shorts_video(paired_slides, out_file):
+    """৯:১৬ ফুল এইচডি শর্টস রেন্ডারার (1080x1920)"""
+    target_w, target_h = 1080, 1920
     clips = []
+
     for idx, (img_path, aud_path, script_text) in enumerate(paired_slides):
         audio_clip = AudioFileClip(aud_path)
         direction = "right_to_left" if (idx % 2 == 0) else "left_to_right"
-        v_clip = make_sliding_tweet_frame(img_path, audio_clip.duration, script_text=script_text, target_w=target_w, target_h=target_h, direction=direction)
+        v_clip = make_shorts_sliding_frame(img_path, audio_clip.duration, script_text=script_text, target_w=target_w, target_h=target_h, direction=direction)
         v_clip = v_clip.set_audio(audio_clip)
         clips.append(v_clip)
-    return concatenate_videoclips(clips)
 
-def render_and_merge_all_stories_to_video(all_story_clips, out_file):
-    """
-    🌟 ১২ ঘণ্টার সব স্টোরি ক্লিপকে একত্রিত করে ১টি একক বড় মেগা ভিডিও তৈরি করে
-    """
-    print(f"\n🎬 [MASTER VIDEO ENGINE] Concatenating {len(all_story_clips)} story segment(s) into ONE Mega Video...")
-    final_master = concatenate_videoclips(all_story_clips)
-
-    final_master.write_videofile(
+    final_video = concatenate_videoclips(clips)
+    final_video.write_videofile(
         out_file, fps=30, codec="libx264", audio_codec="aac",
         audio_bitrate="192k", threads=4, preset="ultrafast",
         ffmpeg_params=["-g", "60", "-pix_fmt", "yuv420p", "-movflags", "+faststart"],
         logger=None
     )
-    final_master.close()
-    for c in all_story_clips: c.close()
+    final_video.close()
+    for c in clips: c.close()
