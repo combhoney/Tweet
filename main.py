@@ -20,11 +20,11 @@ def run_shorts_pipeline(yt):
     if not os.path.exists(WORKSPACE_DIR): return
     os.makedirs(TMP_DIR, exist_ok=True)
 
-    active_cat = get_active_category()
-    story_folders = [f for f in sorted(os.listdir(WORKSPACE_DIR)) if os.path.isdir(os.path.join(WORKSPACE_DIR, f)) and f.startswith(f"shorts_{active_cat}_")]
+    # 🌟 workspace-এ থাকা প্রস্তুতকৃত যেকোনো শর্টস ফোল্ডারকে খুঁজে নেবে
+    story_folders = [f for f in sorted(os.listdir(WORKSPACE_DIR)) if os.path.isdir(os.path.join(WORKSPACE_DIR, f)) and f.startswith("shorts_")]
 
     if not story_folders:
-        print(f"⏩ No approved Shorts story found for '{active_cat.upper()}'. Skipping run.")
+        print("⏩ No approved Shorts story found in workspace. Skipping run.")
         return
 
     folder_name = story_folders[0]
@@ -32,11 +32,16 @@ def run_shorts_pipeline(yt):
 
     try:
         info_json = os.path.join(folder_path, "tweet_info.json")
+        if not os.path.exists(info_json):
+            shutil.rmtree(folder_path, ignore_errors=True)
+            return
+
         with open(info_json, "r", encoding="utf-8") as jf:
             tweet_meta = json.load(jf)
 
         slides_data = tweet_meta.get("slides_data", [])
-        print(f"\n🎬 Generating 9:16 Shorts for Category: '{active_cat.upper()}' (@{tweet_meta.get('author')})")
+        active_cat = tweet_meta.get("category", get_active_category())
+        print(f"\n🎬 Processing 9:16 Shorts for Category: '{active_cat.upper()}' (@{tweet_meta.get('author')})")
 
         # ১. শর্টস স্ক্রিপ্ট তৈরি
         ai_data = generate_shorts_script(slides_data, active_category=active_cat)
@@ -66,12 +71,11 @@ def run_shorts_pipeline(yt):
             print("🛑 Audio synthesis failed.")
             return
 
-        # ৩. ৯:১৬ শর্টস ভিডিও ফাইল নির্ধারণ
+        # ৩. ফাইল নেম ও থাম্বনেইল
         safe_name = "".join(c for c in opt_title if c.isalnum() or c in (' ', '_', '-')).strip()[:40]
         final_video_file = os.path.join(TMP_DIR, f"{safe_name}.mp4")
         final_thumb_file = os.path.join(TMP_DIR, f"{safe_name}.jpg")
 
-        # থাম্বনেইল তৈরি
         main_img = os.path.join(folder_path, "1.png")
         generate_dynamic_thumbnail(main_img, final_thumb_file, slogan)
 
@@ -79,7 +83,7 @@ def run_shorts_pipeline(yt):
         print(f"🎬 Rendering 9:16 Vertical Short with {len(paired_slides)} Slides...")
         render_shorts_video(paired_slides, final_video_file)
 
-        # ৫. আপলোড (ইউটিউব শর্টস বা গুগল ড্রাইভ)
+        # ৫. আপলোড (ইউটিউব বা গুগল ড্রাইভ)
         if UPLOAD_TO_YOUTUBE:
             print("🎯 Uploading to YOUTUBE SHORTS...")
             success = upload_to_youtube(yt, final_video_file, opt_title, final_thumb_file, desc, [active_cat, 'shorts', 'viral'])
