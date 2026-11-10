@@ -1,0 +1,39 @@
+{
+  "category": "tennis",
+  "tweet_id": "2119980742537347515",
+  "author": "WTA",
+  "url": "https://x.com/WTA/status/2119980742537347515",
+  "text": "The Singles Standings on #TheUltimateStage \u2728\n\n#FAGEWTAFinals",
+  "likes": 152,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "WTA",
+      "text": "The Singles Standings on #TheUltimateStage \u2728\n\n#FAGEWTAFinals",
+      "image": "1.png"
+    },
+    {
+      "slide_id": 2,
+      "type": "reply",
+      "author": "amorim_raianne",
+      "text": "@WTA Amoo essa kids \u2764\ufe0f nosso orgulho.",
+      "image": "2.png"
+    },
+    {
+      "slide_id": 3,
+      "type": "reply",
+      "author": "surfin4funz",
+      "text": "@WTA The beautiful thing about Mirra is that she has proven talent above her years, has already won a slam and WTA1000 and doesn\u2019t scream like a child or play to an audience like Eala does!!",
+      "image": "3.png"
+    },
+    {
+      "slide_id": 4,
+      "type": "reply",
+      "author": "uselessness_his",
+      "text": "@WTA @SabalenkaA Yes\u2763\ufe0f",
+      "image": "4.png"
+    }
+  ],
+  "editorial_angle": "Breaking Tennis Story"
+}
