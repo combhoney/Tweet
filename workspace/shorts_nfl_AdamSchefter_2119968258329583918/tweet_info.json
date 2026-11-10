@@ -1,0 +1,39 @@
+{
+  "category": "nfl",
+  "tweet_id": "2119968258329583918",
+  "author": "AdamSchefter",
+  "url": "https://x.com/AdamSchefter/status/2119968258329583918",
+  "text": "This was awesome.",
+  "likes": 4420,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "AdamSchefter",
+      "text": "This was awesome.",
+      "image": "1.png"
+    },
+    {
+      "slide_id": 2,
+      "type": "reply",
+      "author": "IAmTerryRobiske",
+      "text": "@AdamSchefter @RapSheet This dude some how plays every year and gets into a game lol",
+      "image": "2.png"
+    },
+    {
+      "slide_id": 3,
+      "type": "reply",
+      "author": "LMWhoDat",
+      "text": "@AdamSchefter I would\u2019ve bet money he\u2019d been on the Cardinals before",
+      "image": "3.png"
+    },
+    {
+      "slide_id": 4,
+      "type": "reply",
+      "author": "thevision369",
+      "text": "@AdamSchefter Awesome? All she did is go to South Korea.  Yall acting she came back from war.",
+      "image": "4.png"
+    }
+  ],
+  "editorial_angle": "Breaking Nfl Story"
+}
