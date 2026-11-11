@@ -1,0 +1,39 @@
+{
+  "category": "space",
+  "tweet_id": "2120584703082446863",
+  "author": "SpaceX",
+  "url": "https://x.com/SpaceX/status/2120584703082446863",
+  "text": "Thank you to all those who have served, including the veterans we're proud to call members of the SpaceX family. Happy Veterans Day!",
+  "likes": 2125,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "SpaceX",
+      "text": "Thank you to all those who have served, including the veterans we're proud to call members of the SpaceX family. Happy Veterans Day!",
+      "image": "1.png"
+    },
+    {
+      "slide_id": 2,
+      "type": "reply",
+      "author": "review_71",
+      "text": "@SpaceX This is huge",
+      "image": "2.png"
+    },
+    {
+      "slide_id": 3,
+      "type": "reply",
+      "author": "ForrestM481645",
+      "text": "@SpaceX @SpaceX semper Fi! Spacex",
+      "image": "3.png"
+    },
+    {
+      "slide_id": 4,
+      "type": "reply",
+      "author": "mahawane_333",
+      "text": "@SpaceX Building the manufacturing capacity is a whole engineering program of its own.",
+      "image": "4.png"
+    }
+  ],
+  "editorial_angle": "Breaking Space Story"
+}
