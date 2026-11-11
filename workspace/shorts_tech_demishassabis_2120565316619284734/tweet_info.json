@@ -1,0 +1,18 @@
+{
+  "category": "tech",
+  "tweet_id": "2120565316619284734",
+  "author": "demishassabis",
+  "url": "https://x.com/demishassabis/status/2120565316619284734",
+  "text": "Super proud to announce AlphaGenome 2 - our new DNA sequence model! \ud83e\uddec It predicts the impact of DNA variants in different specific cell types - unlocking crucial information for understanding complex diseases. Available for academic research via our API: https://www.alphagenomedocs.com/",
+  "likes": 1708,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "demishassabis",
+      "text": "Super proud to announce AlphaGenome 2 - our new DNA sequence model! \ud83e\uddec It predicts the impact of DNA variants in different specific cell types - unlocking crucial information for understanding complex diseases. Available for academic research via our API: https://www.alphagenomedocs.com/",
+      "image": "1.png"
+    }
+  ],
+  "editorial_angle": "Breaking Tech Story"
+}
