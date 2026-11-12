@@ -1,0 +1,39 @@
+{
+  "category": "space",
+  "tweet_id": "2120739813401792913",
+  "author": "SpaceX",
+  "url": "https://x.com/SpaceX/status/2120739813401792913",
+  "text": "Falcon 9\u2019s first stage lands on the Of Course I Still Love You droneship",
+  "likes": 2847,
+  "slides_data": [
+    {
+      "slide_id": 1,
+      "type": "main",
+      "author": "SpaceX",
+      "text": "Falcon 9\u2019s first stage lands on the Of Course I Still Love You droneship",
+      "image": "1.png"
+    },
+    {
+      "slide_id": 2,
+      "type": "reply",
+      "author": "JunJun0321A",
+      "text": "@SpaceX The Falcon 9 has landed safely on board again, awesome!",
+      "image": "2.png"
+    },
+    {
+      "slide_id": 3,
+      "type": "reply",
+      "author": "KevinHughes6969",
+      "text": "@SpaceX Never gets old",
+      "image": "3.png"
+    },
+    {
+      "slide_id": 4,
+      "type": "reply",
+      "author": "Ninoki111",
+      "text": "@SpaceX Never gets old watching a rocket land itself on a ship in the middle of the ocean",
+      "image": "4.png"
+    }
+  ],
+  "editorial_angle": "Breaking Space Story"
+}
