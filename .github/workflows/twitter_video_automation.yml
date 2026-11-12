@@ -2,7 +2,7 @@ name: X 24/7 Category News Network
 
 on:
   repository_dispatch:
-    # 🌟 যে নামই আসুক না কেন সাথে সাথে রান হবে
+    # 🌟 cron-job.org থেকে যেকোনো ইভেন্ট নাম আসলেই সাথে সাথে রান হবে
     types: [x_video_run, x_viral_video_run, x_breaking_news, x_daily_top10]
   workflow_dispatch:
     inputs:
@@ -11,6 +11,7 @@ on:
         required: false
         default: 'auto_rotate'
 
+# 🌟 কনকারেন্সি লক: আগের রান শেষ না হওয়া পর্যন্ত পরবর্তী রান নিরাপদে লাইনে অপেক্ষা করবে
 concurrency:
   group: x-video-pipeline-lock
   cancel-in-progress: false
@@ -32,6 +33,7 @@ jobs:
           python-version: '3.10'
           cache: 'pip'
 
+      # 🌟 FFmpeg, Fonts, Rclone এবং Kokoro TTS এর জন্য espeak-ng ইনস্টল
       - name: Install System Dependencies (FFmpeg, Fonts, Rclone, espeak-ng)
         run: |
           sudo apt-get update
@@ -42,6 +44,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
+      # 🌟 Google Drive এর জন্য Rclone কনফিগারেশন
       - name: Configure Rclone
         shell: python
         env:
@@ -56,7 +59,8 @@ jobs:
                   f.write(conf_data)
               print("✅ Rclone configured successfully!")
 
-      - name: Run 12-Hour Category Compilation Pipeline
+      # 🌟 মূল শর্টস ভিডিও পাইপলাইন রান
+      - name: Run Category Shorts Compilation Pipeline
         env:
           CLIENT_ID: ${{ secrets.CLIENT_ID }}
           CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
@@ -70,12 +74,20 @@ jobs:
           CATEGORY: ${{ github.event.inputs.category != 'auto_rotate' && github.event.inputs.category || '' }}
         run: python main.py
 
-      - name: Commit and Push History & Category State
+      # 🌟 অটো-ক্লিনআপ ও হিস্ট্রি সেভ: পুরোনো সব সাময়িক ফোল্ডার মুছে ফেলবে এবং শুধু হিস্ট্রি ও স্টেট রাখবে
+      - name: Commit and Push History & Category State (Auto-Cleanup)
         if: always()
         run: |
           git config --global user.name "GitHub Action Bot"
           git config --global user.email "action@github.com"
-          git add workspace/ || true
-          git commit -m "Update category rotation state and history [skip ci]" || echo "No changes to commit"
+          
+          # গিটহাব থেকে পুরোনো সমস্ত ছবির ফোল্ডার পার্মানেন্টলি ডিলিট করা
+          git rm -r --cached workspace/shorts_* workspace/tweet_* 2>/dev/null || true
+          rm -rf workspace/shorts_* workspace/tweet_* 2>/dev/null || true
+          
+          # শুধুমাত্র দরকারি হিস্ট্রি ও স্টেট ফাইল গিটহাবে সেভ করা
+          git add -f workspace/history.txt workspace/category_state.json workspace/api_key_state.json 2>/dev/null || true
+          
+          git commit -m "Auto-clean temporary workspace folders and update history [skip ci]" || echo "No changes to commit"
           git pull --rebase origin main || true
           git push origin main || true
