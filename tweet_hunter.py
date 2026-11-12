@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import os, json, time, random, requests
+import os, json, time, random, re, requests
 from config import WORKSPACE_DIR, HISTORY_FILE, CATEGORY_HANDLES, SCAN_WINDOW_HOURS, get_active_category
 from key_manager import get_circular_key_queue
 from ai_service import ai_gatekeeper_check
@@ -8,6 +8,13 @@ HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json"
 }
+
+def clean_display_name(raw_name, fallback_handle):
+    """ইমোজি ও অপ্রয়োজনীয় প্রতীক মুছে সুন্দর আসল নাম তৈরি করে"""
+    if not raw_name: return fallback_handle
+    clean = re.sub(r'[\U00010000-\U0010ffff]|[\u2600-\u27bf]|[\u2300-\u23ff]|[\u2b50-\u2b55]', '', str(raw_name))
+    clean = re.sub(r'[\<\>\|\#\*\@\_]', '', clean).strip()
+    return clean if len(clean) >= 2 else fallback_handle
 
 def init_workspace():
     os.makedirs(WORKSPACE_DIR, exist_ok=True)
@@ -37,12 +44,18 @@ def fetch_live_tweets_fxtwitter(handle):
                 text = t.get("text", "")
                 likes = int(t.get("likes", t.get("favorite_count", 0)))
                 created_at = t.get("created_timestamp") or t.get("created_at")
+                
+                # 🌟 আসল ডিসপ্লে নাম এক্সট্রাক্ট করা
+                author_obj = t.get("author", {}) if isinstance(t.get("author"), dict) else {}
+                real_name = clean_display_name(author_obj.get("name"), handle)
+
                 if tid and text:
                     tweets.append({
                         "id": tid,
                         "text": text,
                         "likes": likes,
                         "author": handle,
+                        "author_name": real_name,
                         "created_timestamp": created_at,
                         "url": f"https://x.com/{handle}/status/{tid}"
                     })
@@ -60,12 +73,16 @@ def fetch_direct_replies_for_tweet(author, tweet_id, max_needed=4):
             for r in results:
                 rid = str(r.get("id", ""))
                 rtext = r.get("text", "").strip()
-                rauthor = r.get("author", {}).get("screen_name", "User")
+                author_obj = r.get("author", {}) if isinstance(r.get("author"), dict) else {}
+                rauthor_handle = author_obj.get("screen_name", "User")
+                rauthor_name = clean_display_name(author_obj.get("name"), rauthor_handle)
+
                 if rid and rid != str(tweet_id) and len(rtext) > 15:
                     if rid not in [x["id"] for x in direct_replies]:
                         direct_replies.append({
                             "id": rid,
-                            "author": rauthor,
+                            "author": rauthor_handle,
+                            "author_name": rauthor_name,
                             "text": rtext,
                             "likes": int(r.get("likes", 0))
                         })
@@ -92,9 +109,6 @@ def capture_clean_screenshot(tweet_id, output_path):
     return False
 
 def hunt_category_shorts_story():
-    """
-    এক্টিভ ক্যাটাগরির জন্য শীর্ষ ভাইরাল টুইট এবং তার ৩-৪টি হট রিপ্লাই খুঁজে শর্টস হিসেবে স্টেজ করে
-    """
     init_workspace()
     history = get_processed_history()
     active_cat = get_active_category()
@@ -115,6 +129,7 @@ def hunt_category_shorts_story():
             tweet_text = tweet["text"]
             likes = tweet["likes"]
             tweet_url = tweet["url"]
+            author_name = tweet.get("author_name", handle)
             folder_name = f"shorts_{active_cat}_{handle}_{tid}"
 
             if tid in history or folder_name in history or os.path.exists(os.path.join(WORKSPACE_DIR, folder_name)):
@@ -125,27 +140,37 @@ def hunt_category_shorts_story():
                 if (now_ts - created_ts) > twelve_hours_sec:
                     continue
 
-            # ক্যাটাগরি বিশুদ্ধতা যাচাই
             is_worthy, reason, angle = ai_gatekeeper_check(handle, tweet_text, likes, active_category=active_cat)
             if not is_worthy: continue
 
-            print(f"🔥 [APPROVED: {active_cat.upper()}] @{handle} ({likes:,} Likes) ➔ \"{tweet_text[:60]}...\"")
+            print(f"🔥 [APPROVED: {active_cat.upper()}] {author_name} (@{handle}) ({likes:,} Likes) ➔ \"{tweet_text[:60]}...\"")
             folder_path = os.path.join(WORKSPACE_DIR, folder_name)
             os.makedirs(folder_path, exist_ok=True)
             
             img_main = os.path.join(folder_path, "1.png")
             if capture_clean_screenshot(tid, img_main):
                 slides_data = [
-                    {"slide_id": 1, "type": "main", "author": handle, "text": tweet_text, "image": "1.png"}
+                    {
+                        "slide_id": 1,
+                        "type": "main",
+                        "author": handle,
+                        "author_name": author_name,
+                        "text": tweet_text,
+                        "image": "1.png"
+                    }
                 ]
 
-                # শর্টসের জন্য সেরা ৩টি ডিরেক্ট কমেন্ট
-                replies = fetch_direct_replies_for_tweet(handle, tid, max_needed=3)
+                replies = fetch_direct_replies_for_tweet(handle, tid, max_needed=4)
                 for idx, rep in enumerate(replies, start=2):
                     rep_img_path = os.path.join(folder_path, f"{idx}.png")
                     if capture_clean_screenshot(rep["id"], rep_img_path):
                         slides_data.append({
-                            "slide_id": idx, "type": "reply", "author": rep["author"], "text": rep["text"], "image": f"{idx}.png"
+                            "slide_id": idx,
+                            "type": "reply",
+                            "author": rep["author"],
+                            "author_name": rep["author_name"],
+                            "text": rep["text"],
+                            "image": f"{idx}.png"
                         })
 
                 with open(os.path.join(folder_path, "tweet_info.json"), "w", encoding="utf-8") as jf:
@@ -153,6 +178,7 @@ def hunt_category_shorts_story():
                         "category": active_cat,
                         "tweet_id": tid,
                         "author": handle,
+                        "author_name": author_name,
                         "url": tweet_url,
                         "text": tweet_text,
                         "likes": likes,
@@ -160,7 +186,7 @@ def hunt_category_shorts_story():
                         "editorial_angle": angle
                     }, jf, indent=2)
 
-                print(f"✅ Staged Pure {active_cat.upper()} Shorts Story with {len(slides_data)} Slides!")
+                print(f"✅ Staged Pure {active_cat.upper()} Story with {len(slides_data)} Slides for @{handle}!")
                 return folder_name
 
     return None
